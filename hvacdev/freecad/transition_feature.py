@@ -63,7 +63,7 @@ class TransitionFeature:
         add("App::PropertyIntegerConstraint", "SectionsPerQuarter", g,
             "N - number of sections per quarter of the round", (4, 1, 90, 1))
 
-        g = "Manufacturing Options"
+        g = "Flat Pattern Options"
         add("App::PropertyBool", "AddFoldingLines", g, "Add press-brake fold marks", True)
         add("App::PropertyLength", "FoldMarkLength", g, "Length of each fold mark", 15.0)
         add("App::PropertyLength", "FoldMarkGap", g, "Distance of the fold mark from the round edge", 2.0)

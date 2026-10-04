@@ -71,7 +71,7 @@ class ElbowFeature:
             "N - number of full middle sections (end sections are added automatically)",
             (3, 0, 99, 1))
 
-        g = "Manufacturing Options"
+        g = "Flat Pattern Options"
         add("App::PropertyBool", "AddFoldingLines", g, "Add press-brake folding lines", True)
         add("App::PropertyIntegerConstraint", "FoldingLineCount", g,
             "Number of folding lines around the circumference", (24, 1, 720, 1))

@@ -2,7 +2,7 @@
 """Task panel for the rectangular -> round transition (same layout as the elbow).
 
     Main Parameters        diagram (A, B, E, F, D, H) + fields
-    Manufacturing Options  folding lines [count from N], reference dims, folding labels
+    Flat Pattern Options  folding lines [count from N], reference dims, folding labels
     Preview Options        show flat pattern + Generate, add annotations
     Export Options         Export DXF
 """
@@ -83,7 +83,7 @@ class TransitionTaskPanel:
     def _manufacturing_box(self):
         o = self.obj
         w = QtGui.QWidget()
-        w.setWindowTitle("Manufacturing Options")
+        w.setWindowTitle("Flat Pattern Options")
         g = QtGui.QGridLayout(w)
         self.cb_fold = QtGui.QCheckBox("Add folding lines")
         self.cb_fold.setChecked(o.AddFoldingLines)

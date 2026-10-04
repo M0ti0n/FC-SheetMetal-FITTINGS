@@ -2,7 +2,7 @@
 """Task panel for the segmented elbow (layout follows the agreed mockup).
 
     Main Parameters        diagram (D, A, R, N, B) + 4 fields
-    Manufacturing Options  folding lines [n], reference dims, folding labels
+    Flat Pattern Options  folding lines [n], reference dims, folding labels
     Preview Options        show flat pattern / middle (N) / end (B) + Generate
     Export Options         Export DXF
 """
@@ -109,7 +109,7 @@ class ElbowTaskPanel:
     def _manufacturing_box(self):
         o = self.obj
         w = QtGui.QWidget()
-        w.setWindowTitle("Manufacturing Options")
+        w.setWindowTitle("Flat Pattern Options")
         g = QtGui.QGridLayout(w)
         self.cb_fold = QtGui.QCheckBox("Add folding lines")
         self.cb_fold.setChecked(o.AddFoldingLines)

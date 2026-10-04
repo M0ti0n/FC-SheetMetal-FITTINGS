@@ -1,4 +1,4 @@
-# HVAC Developments – FreeCAD workbench
+# HVAC Fittings – FreeCAD workbench
 
 Flat patterns of sheet-metal duct fittings, HACO style:
 **choose fitting → enter dimensions → flat pattern in the model space → check → export DXF.**
@@ -27,7 +27,7 @@ Copy (or `git clone`) this folder into your FreeCAD `Mod` directory and restart 
 | macOS | `~/Library/Application Support/FreeCAD/Mod/` |
 
 Tip: in FreeCAD's Python console, `App.getUserAppDataDir()` prints the folder that contains `Mod`.
-Then pick **HVAC Developments** in the workbench selector. No extra Python packages are needed.
+Then pick **HVAC Fittings** in the workbench selector. No extra Python packages are needed.
 
 ## Segmented elbow
 
