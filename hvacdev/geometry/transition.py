@@ -107,6 +107,7 @@ class TransitionPattern:
     overlaps: bool = False
     side_edges: List[Tuple[Point, Point, str]] = field(default_factory=list)   # seams / joints
     offset: Point = (0.0, 0.0)                      # position on the sheet (pieces side by side)
+    mode: str = PATTERN_COMBINED                    # which pattern it belongs to
 
     def bbox(self):
         xs = [p[0] for p in self.outline]
@@ -380,6 +381,26 @@ def develop_pieces(p: TransitionParams, mode: str = PATTERN_COMBINED) -> List[Tr
         pc.offset = (x - x0, 0.0)
         x += (x1 - x0) + gap
     return pieces
+
+
+def develop_selection(p: TransitionParams, combined=True, short=False, long_=False):
+    """All pieces for the ticked patterns. Each pattern gets its own row
+    (Combined at the bottom, then Short Side, then Long Side above it)."""
+    rows = [m for m, on in ((PATTERN_COMBINED, combined), (PATTERN_SHORT, short),
+                            (PATTERN_LONG, long_)) if on]
+    out = []
+    gap = max(50.0, 0.12 * p.diameter)
+    y = 0.0
+    for mode in rows:
+        pieces = develop_pieces(p, mode)
+        y_min = min(pc.bbox()[1] for pc in pieces)
+        y_max = max(pc.bbox()[3] for pc in pieces)
+        for pc in pieces:
+            pc.offset = (pc.offset[0], y - y_min)
+            pc.mode = mode
+        out += pieces
+        y += (y_max - y_min) + gap
+    return out
 
 
 def _self_intersects(poly: List[Point]) -> bool:

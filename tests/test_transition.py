@@ -175,6 +175,25 @@ def test_pieces_sit_on_the_baseline_and_do_not_overlap():
             assert not pc.overlaps
 
 
+def test_selection_any_combination_in_separate_rows():
+    from hvacdev.geometry.transition import develop_selection
+    p = TransitionParams()
+    assert develop_selection(p, False, False, False) == []
+    allp = develop_selection(p, True, True, True)
+    assert [pc.mode for pc in allp] == [PATTERN_COMBINED, PATTERN_SHORT, PATTERN_SHORT,
+                                        PATTERN_LONG, PATTERN_LONG]
+    # rows do not overlap: every row starts above the previous one
+    top = -1e9
+    for mode in (PATTERN_COMBINED, PATTERN_SHORT, PATTERN_LONG):
+        row = [pc for pc in allp if pc.mode == mode]
+        lo = min(pc.bbox()[1] + pc.offset[1] for pc in row)
+        hi = max(pc.bbox()[3] + pc.offset[1] for pc in row)
+        assert lo > top
+        top = hi
+    only_long = develop_selection(p, False, False, True)
+    assert [pc.name for pc in only_long] == ["Long side E", "Long side F"]
+
+
 if __name__ == "__main__":
     n = 0
     for name, fn in list(globals().items()):

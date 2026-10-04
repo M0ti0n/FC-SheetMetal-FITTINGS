@@ -115,7 +115,9 @@ into E and F. Of the two parallel long sides the one farther from the round cent
 **Fold marks** are drawn only at the round edge (15 mm, 2 mm in): all fold lines of a fan meet in the
 rectangle corner, so marks there would sit on top of each other.
 
-Preview Options: *Show flat pattern*, **Pattern** and *Add annotations* (triangulation lines + piece label).
+Preview Options: *Show flat pattern* with the tick boxes **Combined**, **Short Side** and **Long Side**
+(any combination; each ticked pattern gets its own row in the model space and in the DXF), and
+*Add annotations* (triangulation lines + piece label).
 
 | Pattern | Pieces |
 |---|---|

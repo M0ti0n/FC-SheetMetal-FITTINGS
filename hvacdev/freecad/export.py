@@ -81,6 +81,8 @@ def export_transition(obj, path):
     cut, folds, anno = TransitionFeature.children(obj)
     if not _visible(cut):
         raise RuntimeError("The flat pattern is hidden - tick Show flat pattern first.")
+    if not getattr(obj, "Pieces", "x"):
+        raise RuntimeError("No pattern selected - tick Combined, Short Side or Long Side.")
     return export_sections([("Transition", cut, folds if _visible(folds) else None,
                              anno if _visible(anno) else None)], path)
 

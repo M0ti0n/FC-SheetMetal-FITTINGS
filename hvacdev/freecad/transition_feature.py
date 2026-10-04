@@ -77,20 +77,18 @@ class TransitionFeature:
 
         g = "Preview Options"
         add("App::PropertyBool", "ShowFlatPattern", g, "Show the flat pattern in the model space", True)
-        if "PatternMode" not in have:
-            obj.addProperty("App::PropertyEnumeration", "PatternMode", g,
-                            "Combined = one piece; Short Side = short triangle + corner fans "
-                            "(half round); Long Side = flat long triangle")
-            obj.PatternMode = list(tg.PATTERN_MODES)
-            obj.PatternMode = tg.PATTERN_COMBINED
+        add("App::PropertyBool", "ShowCombined", g, "Whole fitting in one piece, seam on the longer side", True)
+        add("App::PropertyBool", "ShowShortSide", g,
+            "Short-side triangle + the corner parts bent on each side of it (half of the round)", False)
+        add("App::PropertyBool", "ShowLongSide", g, "Long-side triangle, flat", False)
         add("App::PropertyBool", "AddAnnotations", g,
             "Triangulation lines and piece name / quantity", False)
 
         g = "Result"
-        add("App::PropertyInteger", "FoldLineCount", g, "Number of fold lines = 4 x (N + 1)", mode=1)
+        add("App::PropertyInteger", "FoldLineCount", g, "Fold lines in all generated pieces (counting quantities)", mode=1)
         add("App::PropertyString", "SeamOn", g, "Side that carries the seam", mode=1)
         add("App::PropertyLength", "SeamLength", g, "Length of the seam", mode=1)
-        add("App::PropertyString", "Pieces", g, "Pieces generated for the current pattern mode", mode=1)
+        add("App::PropertyString", "Pieces", g, "Pieces generated for the ticked patterns", mode=1)
         add("App::PropertyString", "Warning", g, "Problems found in the pattern", mode=1)
 
         g = "Internal"
@@ -133,8 +131,7 @@ def _shift(q, off):
 
 def regenerate(obj, p=None):
     p = p or params_from(obj)
-    mode = str(getattr(obj, "PatternMode", tg.PATTERN_COMBINED))
-    pieces = tg.develop_pieces(p, mode)
+    pieces = tg.develop_selection(p, obj.ShowCombined, obj.ShowShortSide, obj.ShowLongSide)
     opts = layout.Options(
         fold_lines=obj.AddFoldingLines,
         reference_dims=obj.AddReferenceDimensions,
@@ -164,13 +161,13 @@ def regenerate(obj, p=None):
         anno.Placement = pl
         anno.Proxy.set_data(anno, refs, dims, texts)
 
-    obj.FoldLineCount = sum(len(pc.fold_lines) for pc in pieces)
-    combined = pieces[0] if mode == tg.PATTERN_COMBINED else None
-    obj.SeamOn = "%s side" % combined.seam_side if combined else "joints at the long-side triangles"
+    obj.FoldLineCount = sum(len(pc.fold_lines) * pc.quantity for pc in pieces)
+    combined = next((pc for pc in pieces if pc.mode == tg.PATTERN_COMBINED), None)
+    obj.SeamOn = "%s side" % combined.seam_side if combined else ""
     obj.SeamLength = combined.seam_length if combined else 0.0
     obj.Pieces = ", ".join("%s x%d" % (pc.name, pc.quantity) for pc in pieces)
     bad = [pc.name for pc in pieces if pc.overlaps]
-    obj.Warning = ("Pattern overlaps itself (%s) - use Short Side / Long Side or increase H"
+    obj.Warning = ("Pattern overlaps itself (%s) - use Short Side + Long Side or increase H"
                    % ", ".join(bad)) if bad else ""
     if bad:
         App.Console.PrintWarning("HVAC transition: %s\n" % obj.Warning)

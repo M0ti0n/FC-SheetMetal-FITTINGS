@@ -2,7 +2,7 @@
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
   <name>HVAC Fittings</name>
   <description>Flat patterns (developments) of sheet-metal HVAC duct fittings, neutral-surface based, with folding lines and DXF export.</description>
-  <version>0.3.0</version>
+  <version>0.3.1</version>
   <date>2026-10-04</date>
   <maintainer email="fab.go3d@gmail.com">fab.go3d</maintainer>
   <license file="LICENSE">LGPL-2.1-or-later</license>

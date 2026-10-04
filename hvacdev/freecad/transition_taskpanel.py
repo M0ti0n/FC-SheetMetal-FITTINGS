@@ -3,7 +3,8 @@
 
     Main Parameters        diagram (A, B, E, F, D, H) + fields
     Flat Pattern Options  folding lines [count from N], reference dims, folding labels
-    Preview Options        show flat pattern + Generate, add annotations
+    Preview Options        show flat pattern + Generate; Combined / Short Side /
+                           Long Side (any combination); add annotations
     Export Options         Export DXF
 """
 
@@ -91,8 +92,8 @@ class TransitionTaskPanel:
         self.fold_n.setRange(0, 9999)
         self.fold_n.setReadOnly(True)
         self.fold_n.setButtonSymbols(QtGui.QAbstractSpinBox.NoButtons)
-        self.fold_n.setToolTip("Fold lines per piece, set by 'Sections per quarter (N)':\n"
-                               "Combined 4 x (N + 1), Short Side 2 x N, Long Side 0")
+        self.fold_n.setToolTip("Fold lines in the ticked patterns, set by 'Sections per quarter (N)':\n"
+                               "Combined 4 x (N + 1), Short Side 2 x 2N (both pieces), Long Side 0")
         self.cb_dims = QtGui.QCheckBox("Add reference dimensions")
         self.cb_dims.setChecked(o.AddReferenceDimensions)
         self.cb_labels = QtGui.QCheckBox("Add folding labels")
@@ -112,13 +113,16 @@ class TransitionTaskPanel:
         g = QtGui.QGridLayout(w)
         self.cb_show = QtGui.QCheckBox("Show flat pattern")
         self.cb_show.setChecked(o.ShowFlatPattern)
-        self.mode = QtGui.QComboBox()
-        self.mode.addItems(list(tg.PATTERN_MODES))
-        self.mode.setCurrentIndex(max(0, list(tg.PATTERN_MODES).index(str(o.PatternMode))))
-        self.mode.setToolTip("Combined - whole fitting in one piece, seam on the longer side\n"
-                             "Short Side - short-side triangle + the corner parts bent on\n"
-                             "              each side of it (half of the round)\n"
-                             "Long Side - flat long-side triangle only")
+        self.cb_comb = QtGui.QCheckBox("Combined")
+        self.cb_comb.setChecked(o.ShowCombined)
+        self.cb_comb.setToolTip("Whole fitting in one piece, seam on the longer side")
+        self.cb_short = QtGui.QCheckBox("Short Side")
+        self.cb_short.setChecked(o.ShowShortSide)
+        self.cb_short.setToolTip("Short-side triangle + the corner parts bent on\n"
+                                 "each side of it (half of the round)")
+        self.cb_long = QtGui.QCheckBox("Long Side")
+        self.cb_long.setChecked(o.ShowLongSide)
+        self.cb_long.setToolTip("Long-side triangle only, flat")
         self.cb_anno = QtGui.QCheckBox("Add annotations")
         self.cb_anno.setChecked(o.AddAnnotations)
         self.cb_anno.setToolTip("Triangulation lines and piece name / quantity / parameters")
@@ -127,20 +131,19 @@ class TransitionTaskPanel:
         gen.setAutoDefault(False)
         g.addWidget(self.cb_show, 0, 0)
         g.addWidget(gen, 0, 1)
-        mode_row = QtGui.QHBoxLayout()
-        mode_lbl = QtGui.QLabel("Pattern")
-        mode_lbl.setStyleSheet("margin-left: 22px;")
-        mode_row.addWidget(mode_lbl)
-        mode_row.addWidget(self.mode, 1)
-        g.addLayout(mode_row, 1, 0, 1, 2)
-        g.addWidget(self.cb_anno, 2, 0)
+        g.addWidget(self.cb_comb, 1, 0)
+        g.addWidget(self.cb_short, 2, 0)
+        g.addWidget(self.cb_long, 3, 0)
+        for cb in (self.cb_comb, self.cb_short, self.cb_long):
+            cb.setStyleSheet("margin-left: 22px;")
+        g.addWidget(self.cb_anno, 4, 0)
         g.setContentsMargins(9, 9, 9, 9)
         g.setColumnStretch(0, 1)
         gen.clicked.connect(self.generate)
         self.cb_show.toggled.connect(self._visibility_changed)
         self.cb_anno.toggled.connect(self._annotations_changed)
-        self.mode.currentIndexChanged.connect(self._mode_changed)
-        self.mode.currentIndexChanged.connect(self._sync_enabled)
+        for cb in (self.cb_comb, self.cb_short, self.cb_long):
+            cb.toggled.connect(self._patterns_changed)
         return w
 
     def _export_box(self):
@@ -156,10 +159,15 @@ class TransitionTaskPanel:
         return w
 
     def _sync_enabled(self, *_):
-        mode = self.mode.currentText() if hasattr(self, "mode") else tg.PATTERN_COMBINED
         n = self.n.value()
-        self.fold_n.setValue({tg.PATTERN_COMBINED: 4 * (n + 1), tg.PATTERN_SHORT: 2 * n,
-                              tg.PATTERN_LONG: 0}[mode])
+        # fold lines in the whole set of ticked pieces (2 short pieces, long ones are flat)
+        count = 0
+        if getattr(self, "cb_comb", None) is not None:
+            count = (4 * (n + 1) if self.cb_comb.isChecked() else 0) + \
+                    (4 * n if self.cb_short.isChecked() else 0)
+            for cb in (self.cb_comb, self.cb_short, self.cb_long):
+                cb.setEnabled(self.cb_show.isChecked())
+        self.fold_n.setValue(count)
         self.fold_n.setEnabled(self.cb_fold.isChecked())
         self.cb_labels.setEnabled(self.cb_fold.isChecked())
 
@@ -191,7 +199,9 @@ class TransitionTaskPanel:
         o.AddFoldingLabels = self.cb_labels.isChecked()
         o.ShowFlatPattern = self.cb_show.isChecked()
         o.AddAnnotations = self.cb_anno.isChecked()
-        o.PatternMode = self.mode.currentText()
+        o.ShowCombined = self.cb_comb.isChecked()
+        o.ShowShortSide = self.cb_short.isChecked()
+        o.ShowLongSide = self.cb_long.isChecked()
         if o.Label.startswith("Transition"):   # keep a name the user typed
             tf.update_label(o)
         return True
@@ -207,10 +217,15 @@ class TransitionTaskPanel:
 
     def _visibility_changed(self, *_):
         self.obj.ShowFlatPattern = self.cb_show.isChecked()
+        self._sync_enabled()
 
-    def _mode_changed(self, *_):
-        self.obj.PatternMode = self.mode.currentText()
-        self.obj.touch()
+    def _patterns_changed(self, *_):
+        o = self.obj
+        o.ShowCombined = self.cb_comb.isChecked()
+        o.ShowShortSide = self.cb_short.isChecked()
+        o.ShowLongSide = self.cb_long.isChecked()
+        self._sync_enabled()
+        o.touch()
         self.doc.recompute()
         Gui.SendMsgToActiveView("ViewFit")
 
