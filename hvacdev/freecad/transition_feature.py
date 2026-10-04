@@ -77,6 +77,12 @@ class TransitionFeature:
 
         g = "Preview Options"
         add("App::PropertyBool", "ShowFlatPattern", g, "Show the flat pattern in the model space", True)
+        if "PatternMode" not in have:
+            obj.addProperty("App::PropertyEnumeration", "PatternMode", g,
+                            "Combined = one piece; Short Side = short triangle + corner fans "
+                            "(half round); Long Side = flat long triangle")
+            obj.PatternMode = list(tg.PATTERN_MODES)
+            obj.PatternMode = tg.PATTERN_COMBINED
         add("App::PropertyBool", "AddAnnotations", g,
             "Triangulation lines and piece name / quantity", False)
 
@@ -84,6 +90,7 @@ class TransitionFeature:
         add("App::PropertyInteger", "FoldLineCount", g, "Number of fold lines = 4 x (N + 1)", mode=1)
         add("App::PropertyString", "SeamOn", g, "Side that carries the seam", mode=1)
         add("App::PropertyLength", "SeamLength", g, "Length of the seam", mode=1)
+        add("App::PropertyString", "Pieces", g, "Pieces generated for the current pattern mode", mode=1)
         add("App::PropertyString", "Warning", g, "Problems found in the pattern", mode=1)
 
         g = "Internal"
@@ -120,9 +127,14 @@ class TransitionFeature:
     __setstate__ = loads
 
 
+def _shift(q, off):
+    return (q[0] + off[0], q[1] + off[1])
+
+
 def regenerate(obj, p=None):
     p = p or params_from(obj)
-    pat = tg.develop(p)
+    mode = str(getattr(obj, "PatternMode", tg.PATTERN_COMBINED))
+    pieces = tg.develop_pieces(p, mode)
     opts = layout.Options(
         fold_lines=obj.AddFoldingLines,
         reference_dims=obj.AddReferenceDimensions,
@@ -130,23 +142,37 @@ def regenerate(obj, p=None):
         reference_lines=obj.AddAnnotations,
         piece_labels=obj.AddAnnotations,
     )
-    ref, dim, texts = transition_layout.annotations(pat, opts, params_text(p), p.diameter)
+    ptxt = params_text(p)
+    cut_geo, fold_geo, refs, dims, texts = [], [], [], [], []
+    for pc in pieces:
+        off = pc.offset
+        cut_geo += [_seg_geometry(sg.mapped(lambda q: _shift(q, off))) for sg in pc.contour]
+        if p.fold_lines:
+            fold_geo += [_line(_shift(a, off), _shift(b, off)) for a, b in pc.fold_marks]
+        r, d, t = transition_layout.annotations(pc, opts, ptxt, p.diameter)
+        refs += [(_shift(a, off), _shift(b, off)) for a, b in r]
+        dims += [(_shift(a, off), _shift(b, off)) for a, b in d]
+        texts += [(_shift(pos, off), v, h, rot) for pos, v, h, rot in t]
+
     pl = App.Placement()
     cut, folds, anno = TransitionFeature.children(obj)
     if cut:
-        _set_sketch(cut, [_seg_geometry(sg) for sg in pat.contour], pl)
+        _set_sketch(cut, cut_geo, pl)
     if folds:
-        _set_sketch(folds, [_line(a, b) for a, b in pat.fold_marks] if p.fold_lines else [], pl)
+        _set_sketch(folds, fold_geo, pl)
     if anno:
         anno.Placement = pl
-        anno.Proxy.set_data(anno, ref, dim, texts)
+        anno.Proxy.set_data(anno, refs, dims, texts)
 
-    obj.FoldLineCount = len(pat.fold_lines)
-    obj.SeamOn = "%s side" % pat.seam_side
-    obj.SeamLength = pat.seam_length
-    obj.Warning = ("Pattern overlaps itself - split it into two pieces or increase H"
-                   if pat.overlaps else "")
-    if pat.overlaps:
+    obj.FoldLineCount = sum(len(pc.fold_lines) for pc in pieces)
+    combined = pieces[0] if mode == tg.PATTERN_COMBINED else None
+    obj.SeamOn = "%s side" % combined.seam_side if combined else "joints at the long-side triangles"
+    obj.SeamLength = combined.seam_length if combined else 0.0
+    obj.Pieces = ", ".join("%s x%d" % (pc.name, pc.quantity) for pc in pieces)
+    bad = [pc.name for pc in pieces if pc.overlaps]
+    obj.Warning = ("Pattern overlaps itself (%s) - use Short Side / Long Side or increase H"
+                   % ", ".join(bad)) if bad else ""
+    if bad:
         App.Console.PrintWarning("HVAC transition: %s\n" % obj.Warning)
     apply_visibility(obj)
 

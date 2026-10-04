@@ -91,8 +91,8 @@ class TransitionTaskPanel:
         self.fold_n.setRange(0, 9999)
         self.fold_n.setReadOnly(True)
         self.fold_n.setButtonSymbols(QtGui.QAbstractSpinBox.NoButtons)
-        self.fold_n.setToolTip("Number of fold lines = 4 x (N + 1), set by\n"
-                               "'Sections per quarter (N)'")
+        self.fold_n.setToolTip("Fold lines per piece, set by 'Sections per quarter (N)':\n"
+                               "Combined 4 x (N + 1), Short Side 2 x N, Long Side 0")
         self.cb_dims = QtGui.QCheckBox("Add reference dimensions")
         self.cb_dims.setChecked(o.AddReferenceDimensions)
         self.cb_labels = QtGui.QCheckBox("Add folding labels")
@@ -112,6 +112,13 @@ class TransitionTaskPanel:
         g = QtGui.QGridLayout(w)
         self.cb_show = QtGui.QCheckBox("Show flat pattern")
         self.cb_show.setChecked(o.ShowFlatPattern)
+        self.mode = QtGui.QComboBox()
+        self.mode.addItems(list(tg.PATTERN_MODES))
+        self.mode.setCurrentIndex(max(0, list(tg.PATTERN_MODES).index(str(o.PatternMode))))
+        self.mode.setToolTip("Combined - whole fitting in one piece, seam on the longer side\n"
+                             "Short Side - short-side triangle + the corner parts bent on\n"
+                             "              each side of it (half of the round)\n"
+                             "Long Side - flat long-side triangle only")
         self.cb_anno = QtGui.QCheckBox("Add annotations")
         self.cb_anno.setChecked(o.AddAnnotations)
         self.cb_anno.setToolTip("Triangulation lines and piece name / quantity / parameters")
@@ -120,12 +127,20 @@ class TransitionTaskPanel:
         gen.setAutoDefault(False)
         g.addWidget(self.cb_show, 0, 0)
         g.addWidget(gen, 0, 1)
-        g.addWidget(self.cb_anno, 1, 0)
+        mode_row = QtGui.QHBoxLayout()
+        mode_lbl = QtGui.QLabel("Pattern")
+        mode_lbl.setStyleSheet("margin-left: 22px;")
+        mode_row.addWidget(mode_lbl)
+        mode_row.addWidget(self.mode, 1)
+        g.addLayout(mode_row, 1, 0, 1, 2)
+        g.addWidget(self.cb_anno, 2, 0)
         g.setContentsMargins(9, 9, 9, 9)
         g.setColumnStretch(0, 1)
         gen.clicked.connect(self.generate)
         self.cb_show.toggled.connect(self._visibility_changed)
         self.cb_anno.toggled.connect(self._annotations_changed)
+        self.mode.currentIndexChanged.connect(self._mode_changed)
+        self.mode.currentIndexChanged.connect(self._sync_enabled)
         return w
 
     def _export_box(self):
@@ -141,7 +156,10 @@ class TransitionTaskPanel:
         return w
 
     def _sync_enabled(self, *_):
-        self.fold_n.setValue(4 * (self.n.value() + 1))
+        mode = self.mode.currentText() if hasattr(self, "mode") else tg.PATTERN_COMBINED
+        n = self.n.value()
+        self.fold_n.setValue({tg.PATTERN_COMBINED: 4 * (n + 1), tg.PATTERN_SHORT: 2 * n,
+                              tg.PATTERN_LONG: 0}[mode])
         self.fold_n.setEnabled(self.cb_fold.isChecked())
         self.cb_labels.setEnabled(self.cb_fold.isChecked())
 
@@ -173,6 +191,7 @@ class TransitionTaskPanel:
         o.AddFoldingLabels = self.cb_labels.isChecked()
         o.ShowFlatPattern = self.cb_show.isChecked()
         o.AddAnnotations = self.cb_anno.isChecked()
+        o.PatternMode = self.mode.currentText()
         if o.Label.startswith("Transition"):   # keep a name the user typed
             tf.update_label(o)
         return True
@@ -188,6 +207,12 @@ class TransitionTaskPanel:
 
     def _visibility_changed(self, *_):
         self.obj.ShowFlatPattern = self.cb_show.isChecked()
+
+    def _mode_changed(self, *_):
+        self.obj.PatternMode = self.mode.currentText()
+        self.obj.touch()
+        self.doc.recompute()
+        Gui.SendMsgToActiveView("ViewFit")
 
     def _annotations_changed(self, checked):
         self.obj.AddAnnotations = checked

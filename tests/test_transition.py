@@ -6,7 +6,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from hvacdev.geometry.transition import (TransitionParams, develop, SEAM_CHOICES,  # noqa
-                                         _corners, _round)
+                                         _corners, _round, develop_pieces, short_and_long_sides,
+                                         PATTERN_COMBINED, PATTERN_SHORT, PATTERN_LONG)
 from hvacdev.geometry import transition_layout, layout  # noqa
 
 CASES = (
@@ -109,6 +110,69 @@ def test_annotations_off_by_default():
         t, layout.Options(reference_dims=True, fold_labels=True, reference_lines=True, piece_labels=True),
         "x", 400)
     assert len(ref) == len(t.fold_lines) and texts
+
+
+def _round_length(pc):
+    """Length of the round-edge chain: contour = rectangle edges, right edge,
+    round edge (arcs + near-straight lines), left edge."""
+    n = 0.0
+    for sg in pc.contour[len(pc.bottom_edges) + 1:-1]:
+        pts = sg.sample(32)
+        n += sum(math.dist(a, b) for a, b in zip(pts, pts[1:]))
+    return n
+
+
+def test_split_pieces_add_up_to_the_whole_fitting():
+    for kw in CASES:
+        p = TransitionParams(**kw)
+        pieces = develop_pieces(p, PATTERN_SHORT) + develop_pieces(p, PATTERN_LONG)
+        rect = sum(pc.quantity * sum(math.dist(a, b) for a, b, _ in pc.bottom_edges) for pc in pieces)
+        assert approx(rect, 2 * (p.a + p.b + p.e + p.f))
+        rnd = sum(pc.quantity * _round_length(pc) for pc in pieces)
+        assert abs(rnd - math.pi * p.diameter) < 0.05, (kw, rnd)
+
+
+def test_joints_match_between_short_and_long_pieces():
+    for kw in CASES:
+        p = TransitionParams(**kw)
+        _, long_ = short_and_long_sides(p)
+        c = _corners(p)
+        exp = []
+        for s in long_:
+            t = _round(p, s * math.pi / 2)
+            exp += [round(math.dist(c[(s - 1) % 4], t), 6), round(math.dist(c[s], t), 6)]
+        lens = lambda mode: sorted(round(math.dist(a, b), 6) for pc in develop_pieces(p, mode)
+                                   for a, b, _ in pc.side_edges for _q in range(pc.quantity))
+        assert lens(PATTERN_SHORT) == lens(PATTERN_LONG) == sorted(exp)
+
+
+def test_split_piece_counts_and_folds():
+    p = TransitionParams(sections=4)                    # A+B > E+F, A != B, E != F
+    short = develop_pieces(p, PATTERN_SHORT)
+    long_ = develop_pieces(p, PATTERN_LONG)
+    assert [pc.name for pc in short] == ["Short side A", "Short side B"]
+    assert [pc.name for pc in long_] == ["Long side E", "Long side F"]
+    assert all(len(pc.fold_lines) == 2 * p.sections for pc in short)
+    assert all(not pc.fold_lines and not pc.fold_marks for pc in long_)
+    # centred rectangle -> mirror-identical pieces become one part x2
+    q = TransitionParams(a=200, b=200, e=150, f=150)
+    assert [(pc.name, pc.quantity) for pc in develop_pieces(q, PATTERN_SHORT)] == [("Short side", 2)]
+    assert [(pc.name, pc.quantity) for pc in develop_pieces(q, PATTERN_LONG)] == [("Long side", 2)]
+    assert len(develop_pieces(p, PATTERN_COMBINED)) == 1
+
+
+def test_pieces_sit_on_the_baseline_and_do_not_overlap():
+    p = TransitionParams()
+    for mode in (PATTERN_SHORT, PATTERN_LONG):
+        pieces = develop_pieces(p, mode)
+        right = -1e9
+        for pc in pieces:
+            (a, _, _), = [pc.bottom_edges[0]]
+            assert abs(a[1]) < 1e-9 and abs(pc.bottom_edges[-1][1][1]) < 1e-9
+            x0, _, x1, _ = pc.bbox()
+            assert x0 + pc.offset[0] > right
+            right = x1 + pc.offset[0]
+            assert not pc.overlaps
 
 
 if __name__ == "__main__":

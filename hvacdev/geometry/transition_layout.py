@@ -22,6 +22,18 @@ def _unit(a, b):
     return dx / L, dy / L, L
 
 
+def _centroid(poly):
+    area = cx = cy = 0.0
+    for (x0, y0), (x1, y1) in zip(poly, poly[1:] + poly[:1]):
+        cr = x0 * y1 - x1 * y0
+        area += cr
+        cx += (x0 + x1) * cr
+        cy += (y0 + y1) * cr
+    if abs(area) < 1e-12:
+        return poly[0]
+    return (cx / (3 * area), cy / (3 * area))
+
+
 def annotations(pat, opts: Options, params_text: str, size_ref: float):
     """Returns (ref_lines, dim_lines, texts) in pattern coordinates."""
     th = text_height(size_ref)
@@ -46,18 +58,22 @@ def annotations(pat, opts: Options, params_text: str, size_ref: float):
             nx, ny = uy, -ux                      # outward (pattern lies left of a -> b)
             mid = ((a[0] + b[0]) / 2 + nx * th * 1.2, (a[1] + b[1]) / 2 + ny * th * 1.2)
             texts.append((mid, "%s %.1f" % (name, L), th * 0.6, _readable(math.degrees(math.atan2(uy, ux)))))
-        # seam length (left seam edge)
-        seam = pat.contour[-1]
-        ux, uy, L = _unit(seam.start, seam.end)
-        mid = ((seam.start[0] + seam.end[0]) / 2 - th * 1.2, (seam.start[1] + seam.end[1]) / 2)
-        texts.append((mid, "SEAM %.1f" % L, th * 0.6, 90.0))
+        # seam (combined) or joint edges (split pieces), written outside the edge
+        for a, b, name in pat.side_edges:
+            ux, uy, L = _unit(a, b)
+            nx, ny = uy, -ux
+            mid = ((a[0] + b[0]) / 2 + nx * th * 1.2, (a[1] + b[1]) / 2 + ny * th * 1.2)
+            texts.append((mid, "%s %.1f" % (name, L), th * 0.6, _readable(math.degrees(math.atan2(uy, ux)))))
 
     if opts.reference_lines:
         ref = list(pat.fold_lines)                # full triangulation lines
 
-    if opts.piece_labels and pat.fold_lines:
-        a, b = pat.fold_lines[len(pat.fold_lines) // 2]
-        c = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+    if opts.piece_labels:
+        if pat.fold_lines:
+            a, b = pat.fold_lines[len(pat.fold_lines) // 2]
+            c = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+        else:                                     # flat piece: centroid of the outline
+            c = _centroid(pat.outline)
         texts.append(((c[0], c[1] + th * 0.8), "%s  x%d" % (pat.name.upper(), pat.quantity), th, 0.0))
         texts.append(((c[0], c[1] - th * 0.8), params_text, th * 0.7, 0.0))
 

@@ -46,6 +46,11 @@ _SEAM_TO_SIDE = {"AB side at E": SIDE_E, "AB side at F": SIDE_F,
 
 SUBSTEPS_PER_QUARTER = 128      # fine triangulation of the round edge
 
+PATTERN_COMBINED = "Combined"       # one piece, seam on the longer side
+PATTERN_SHORT = "Short Side"        # short-side triangle + the two corner fans (half round)
+PATTERN_LONG = "Long Side"          # flat long-side triangle only
+PATTERN_MODES = (PATTERN_COMBINED, PATTERN_SHORT, PATTERN_LONG)
+
 
 @dataclass
 class TransitionParams:
@@ -100,6 +105,8 @@ class TransitionPattern:
     seam_length: float = 0.0
     seam_side: str = ""
     overlaps: bool = False
+    side_edges: List[Tuple[Point, Point, str]] = field(default_factory=list)   # seams / joints
+    offset: Point = (0.0, 0.0)                      # position on the sheet (pieces side by side)
 
     def bbox(self):
         xs = [p[0] for p in self.outline]
@@ -224,13 +231,155 @@ def develop(p: TransitionParams) -> TransitionPattern:
 
     pat = TransitionPattern("Transition", 1, contour, outline,
                             fold_lines=fold_lines, bottom_edges=bottom_edges,
-                            seam_length=_d3(S3, T3), seam_side=SIDE_NAMES[seam])
+                            seam_length=_d3(S3, T3), seam_side=SIDE_NAMES[seam],
+                            side_edges=[(top2[0], bottom2[0], "SEAM")])
     if p.fold_lines:
         for a, b in fold_lines:
             # all folds of a fan meet in the rectangle corner, so marks only at the round edge
             pat.fold_marks += fold_marks_on_line(a, b, p.fold_mark_length, p.fold_mark_gap, ends="end")
     pat.overlaps = _self_intersects(bottom2 + list(reversed(top2)))
     return pat
+
+
+# ------------------------------------------------------------ split pieces
+class _Strip:
+    """Unfolds a strip of triangles between the rectangle edge (bottom chain)
+    and the round edge (top chain), starting from the edge b3 - t3."""
+
+    def __init__(self, b3, t3):
+        self.b3, self.t3 = b3, t3
+        self.b2, self.t2 = (0.0, 0.0), (0.0, _d3(b3, t3))
+        self.bottom2, self.top2 = [self.b2], [self.t2]
+
+    def _place(self, n3):
+        b2, t2 = self.b2, self.t2
+        return _third_point(b2, t2, _d3(self.b3, n3), _d3(self.t3, n3), +1,
+                            lambda X: _cross(b2, X, t2))
+
+    def bottom(self, n3):
+        self.b2, self.b3 = self._place(n3), n3
+        self.bottom2.append(self.b2)
+
+    def top(self, n3):
+        self.t2, self.t3 = self._place(n3), n3
+        self.top2.append(self.t2)
+
+
+def _rotate_to_base(pat):
+    """Turn a piece so its rectangle edge lies on the x axis, starting at 0."""
+    (x0, y0), (x1, y1) = pat.bottom_edges[0][0], pat.bottom_edges[-1][1]
+    ang = -math.atan2(y1 - y0, x1 - x0)
+    c, sn = math.cos(ang), math.sin(ang)
+
+    def tr(q):
+        x, y = q[0] - x0, q[1] - y0
+        return (x * c - y * sn, x * sn + y * c)
+
+    pat.contour = [sg.mapped(tr) for sg in pat.contour]
+    pat.outline = [tr(q) for q in pat.outline]
+    pat.fold_lines = [(tr(a), tr(b)) for a, b in pat.fold_lines]
+    pat.fold_marks = [(tr(a), tr(b)) for a, b in pat.fold_marks]
+    pat.bottom_edges = [(tr(a), tr(b), n) for a, b, n in pat.bottom_edges]
+    pat.side_edges = [(tr(a), tr(b), n) for a, b, n in pat.side_edges]
+    return pat
+
+
+def _finish_piece(p, strip, name, qty, fold_lines, fan_ranges, bottom_names):
+    b2, t2 = strip.bottom2, strip.top2
+    contour, bottom_edges = [], []
+    for j in range(len(b2) - 1):
+        contour.append(arcs.Seg(b2[j], b2[j + 1]))
+        bottom_edges.append((b2[j], b2[j + 1], bottom_names[j]))
+    contour.append(arcs.Seg(b2[-1], t2[-1]))
+    round_segs = []
+    for i0, i1 in fan_ranges:
+        round_segs += arcs.fit_points(t2[i0:i1 + 1], p.arc_tol)
+    contour += [sg.reversed() for sg in reversed(round_segs)]
+    contour.append(arcs.Seg(t2[0], b2[0]))
+    outline = b2 + list(reversed(t2)) + [b2[0]]
+    pat = TransitionPattern(name, qty, contour, outline, fold_lines=fold_lines,
+                            bottom_edges=bottom_edges,
+                            side_edges=[(b2[-1], t2[-1], "JOINT"), (t2[0], b2[0], "JOINT")])
+    if p.fold_lines:
+        for a, b in fold_lines:
+            pat.fold_marks += fold_marks_on_line(a, b, p.fold_mark_length, p.fold_mark_gap, ends="end")
+    pat.overlaps = _self_intersects(b2 + list(reversed(t2)))
+    return _rotate_to_base(pat)
+
+
+def _short_piece(p, side, qty):
+    """Triangle on `side` + the fans of its two corners (a half round)."""
+    N = p.sections
+    sub = max(1, math.ceil(SUBSTEPS_PER_QUARTER / N))
+    steps = N * sub
+    corners = _corners(p)
+    prev_c, next_c = corners[(side - 1) % 4], corners[side]
+    th = side * math.pi / 2
+    strip = _Strip(prev_c, _round(p, th - math.pi / 2))
+    folds, fans = [], []
+    for k in range(1, steps + 1):                      # fan of the first corner
+        strip.top(_round(p, th - math.pi / 2 + k * (math.pi / 2) / steps))
+        if k % sub == 0:                               # k = steps: bend into the triangle
+            folds.append((strip.b2, strip.t2))
+    fans.append((0, len(strip.top2) - 1))
+    strip.bottom(next_c)                               # the short-side triangle
+    folds.append((strip.b2, strip.t2))                 # bend triangle -> second fan
+    start = len(strip.top2) - 1
+    for k in range(1, steps + 1):                      # fan of the second corner
+        strip.top(_round(p, th + k * (math.pi / 2) / steps))
+        if k % sub == 0 and k < steps:                 # last line is the cut edge
+            folds.append((strip.b2, strip.t2))
+    fans.append((start, len(strip.top2) - 1))
+    name = "Short side %s" % SIDE_NAMES[side] if qty == 1 else "Short side"
+    return _finish_piece(p, strip, name, qty, folds, fans, ["%s-side" % SIDE_NAMES[side]])
+
+
+def _long_piece(p, side, qty):
+    """Flat triangle on `side`, no round parts."""
+    corners = _corners(p)
+    prev_c, next_c = corners[(side - 1) % 4], corners[side]
+    strip = _Strip(prev_c, _round(p, side * math.pi / 2))
+    strip.bottom(next_c)
+    name = "Long side %s" % SIDE_NAMES[side] if qty == 1 else "Long side"
+    return _finish_piece(p, strip, name, qty, [], [], ["%s-side" % SIDE_NAMES[side]])
+
+
+def short_and_long_sides(p):
+    """(short sides, long sides) as side ids; AB sides (E, F) count as long when A + B >= E + F."""
+    if p.a + p.b >= p.e + p.f:
+        return (SIDE_A, SIDE_B), (SIDE_E, SIDE_F)
+    return (SIDE_E, SIDE_F), (SIDE_A, SIDE_B)
+
+
+def _same(p, s1, s2):
+    """Pieces on opposite sides are mirror images (= the same part) when the
+    rectangle is centred across them."""
+    if {s1, s2} == {SIDE_A, SIDE_B}:
+        return abs(p.a - p.b) < 1e-9
+    return abs(p.e - p.f) < 1e-9
+
+
+def develop_pieces(p: TransitionParams, mode: str = PATTERN_COMBINED) -> List[TransitionPattern]:
+    """Flat pattern(s) for the chosen preview mode, laid out side by side."""
+    errors = p.validate()
+    if errors:
+        raise ValueError("\n".join(errors))
+    if mode == PATTERN_COMBINED:
+        return [develop(p)]
+    short, long_ = short_and_long_sides(p)
+    sides = short if mode == PATTERN_SHORT else long_
+    make = _short_piece if mode == PATTERN_SHORT else _long_piece
+    if _same(p, *sides):
+        pieces = [make(p, sides[0], 2)]
+    else:
+        pieces = [make(p, s, 1) for s in sides]
+    gap = max(50.0, 0.12 * p.diameter)
+    x = 0.0
+    for pc in pieces:
+        x0, _, x1, _ = pc.bbox()
+        pc.offset = (x - x0, 0.0)
+        x += (x1 - x0) + gap
+    return pieces
 
 
 def _self_intersects(poly: List[Point]) -> bool:

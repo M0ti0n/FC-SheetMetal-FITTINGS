@@ -115,7 +115,18 @@ into E and F. Of the two parallel long sides the one farther from the round cent
 **Fold marks** are drawn only at the round edge (15 mm, 2 mm in): all fold lines of a fan meet in the
 rectangle corner, so marks there would sit on top of each other.
 
-Preview Options: *Show flat pattern* and *Add annotations* (triangulation lines + piece label).
+Preview Options: *Show flat pattern*, **Pattern** and *Add annotations* (triangulation lines + piece label).
+
+| Pattern | Pieces |
+|---|---|
+| **Combined** | whole fitting in one piece, seam on the longer side |
+| **Short Side** | each short-side triangle with the corner parts bent on both sides of it (half of the round) |
+| **Long Side** | each long-side triangle, flat, no round parts |
+
+Short Side + Long Side together make the whole fitting (4 pieces, joined along the long-side
+triangle edges; the joint lengths match exactly). Because the rectangle can be off-centre, the two
+short (or long) pieces differ; when the rectangle is centred across them they are the same part and
+are generated once as ×2. Each piece is laid with its rectangle edge on the x axis.
 If the pattern would overlap itself (very low H), a warning is shown.
 
 ### SheetMetal (optional 3D check)
