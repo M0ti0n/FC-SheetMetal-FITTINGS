@@ -53,7 +53,32 @@ class CmdRectRoundTransition:
         Gui.SendMsgToActiveView("ViewFit")
 
 
+class CmdBranchReducer:
+    def GetResources(self):
+        return {
+            "Pixmap": resources.icon("BranchReducer.svg"),
+            "MenuText": "Branch reducer",
+            "ToolTip": "Flat patterns of a round reducer with a round branch\n"
+                       "(reducer seam through the branch hole, branch seam on its shortest side)",
+        }
+
+    def IsActive(self):
+        return not Gui.Control.activeDialog()
+
+    def Activated(self):
+        from hvacdev.freecad import branch_feature as bf
+        from hvacdev.freecad.branch_taskpanel import BranchReducerTaskPanel
+        doc = App.ActiveDocument or App.newDocument("HVAC")
+        doc.openTransaction("Branch reducer")
+        obj = bf.make_branch_reducer(doc)
+        doc.recompute()
+        Gui.Control.showDialog(BranchReducerTaskPanel(obj, is_new=True))
+        Gui.ActiveDocument.ActiveView.viewTop()
+        Gui.SendMsgToActiveView("ViewFit")
+
+
 def register():
     Gui.addCommand("HVAC_SegmentedElbow", CmdSegmentedElbow())
     Gui.addCommand("HVAC_RectRoundTransition", CmdRectRoundTransition())
-    return ["HVAC_SegmentedElbow", "HVAC_RectRoundTransition"]
+    Gui.addCommand("HVAC_BranchReducer", CmdBranchReducer())
+    return ["HVAC_SegmentedElbow", "HVAC_RectRoundTransition", "HVAC_BranchReducer"]

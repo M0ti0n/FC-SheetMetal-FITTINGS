@@ -229,6 +229,55 @@ def transition_icon(pal):
     return ic
 
 
+# ------------------------------------------------------------ branch reducer
+def branch_icon(pal):
+    """Side view: reducer cone with a branch pipe leaving its left side."""
+    ic = Icon()
+    outline = pal[3]
+    bl, br, tl, tr = (24.0, 60.0), (60.0, 60.0), (33.0, 8.0), (51.0, 8.0)   # cone corners
+    strips = 32
+
+    def mix(a, b, u):
+        return (a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u)
+
+    def cyl_shade(uc):        # light from the upper left, highlight left of centre
+        return 0.18 + 0.82 * max(0.0, math.cos((uc - 0.32) * math.pi * 0.95))
+
+    for k in range(strips):                                     # cone, shaded across
+        u0, u1 = k / strips, (k + 1) / strips
+        ic.poly([mix(bl, br, u0), mix(bl, br, u1), mix(tl, tr, u1), mix(tl, tr, u0)],
+                shade(pal, cyl_shade((u0 + u1) / 2)))
+    ic.line([bl, br, tr, tl], outline, 2.4, closed=True)
+
+    # branch: axis meets the cone's left side at P, rising 30 deg to the left
+    def cone_left(t):                                           # t = 0 bottom .. 1 top
+        return mix(bl, tl, t)
+    P = cone_left(0.5)
+    a = math.radians(30)
+    u = (-math.cos(a), -math.sin(a))                            # screen y points down
+    nrm = (-math.sin(a), math.cos(a))                           # towards the lower outline
+    r, L = 8.5, 24.0
+    E = (P[0] + u[0] * L, P[1] + u[1] * L)
+
+    def hit(p0):                                                # back along -u to the cone side
+        (x0, y0), (x1, y1) = bl, tl
+        ex, ey = x1 - x0, y1 - y0
+        dx, dy = -u[0], -u[1]
+        den = dx * ey - dy * ex
+        t = ((x0 - p0[0]) * ey - (y0 - p0[1]) * ex) / den
+        return (p0[0] + dx * t, p0[1] + dy * t)
+
+    up_e = (E[0] - nrm[0] * r, E[1] - nrm[1] * r)
+    lo_e = (E[0] + nrm[0] * r, E[1] + nrm[1] * r)
+    up_h, lo_h = hit(up_e), hit(lo_e)
+    for k in range(strips):                                     # branch, shaded across
+        u0, u1 = k / strips, (k + 1) / strips
+        ic.poly([mix(up_e, lo_e, u0), mix(up_e, lo_e, u1), mix(up_h, lo_h, u1), mix(up_h, lo_h, u0)],
+                shade(pal, cyl_shade((u0 + u1) / 2 * 0.9 + 0.05)))
+    ic.line([up_h, up_e, lo_e, lo_h], outline, 2.4)
+    return ic
+
+
 def write(name, ic, colour, svg_path=None):
     os.makedirs(os.path.join(ICONS, "png"), exist_ok=True)
     os.makedirs(os.path.join(ICONS, "variants"), exist_ok=True)
@@ -246,4 +295,6 @@ if __name__ == "__main__":
               os.path.join(ICONS, "SegmentedElbow.svg") if default else None)
         write("RectRoundTransition", transition_icon(pal), colour,
               os.path.join(ICONS, "RectRoundTransition.svg") if default else None)
+        write("BranchReducer", branch_icon(pal), colour,
+              os.path.join(ICONS, "BranchReducer.svg") if default else None)
     print("icons written to", ICONS)

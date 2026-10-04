@@ -13,7 +13,7 @@ in the SheetMetal workbench for a 3D check.
 |---|---|
 | Round segmented elbow | ✅ working |
 | Rectangular → round eccentric transition | ✅ working |
-| Round reducer with branch | planned |
+| Round reducer with branch | ✅ working |
 | Simple reducer | planned |
 
 ## Install
@@ -131,6 +131,32 @@ short (or long) pieces differ; when the rectangle is centred across them they ar
 are generated once as ×2. Each piece is laid with its rectangle edge on the x axis.
 If the pattern would overlap itself (very low H), a warning is shown.
 
+## Branch reducer (round reducer with branch)
+
+Parameters (see the diagram in the task panel):
+
+| | |
+|---|---|
+| **D1 / D2** | reducer diameter at the top / bottom (neutral) |
+| **H1** | reducer height |
+| **H2** | height where the branch axis meets the reducer side |
+| **D3** | branch diameter (neutral) |
+| **L** | from that point along the branch axis to the (square) branch end |
+| **A** | branch angle above the horizontal |
+
+Two pieces: **Reducer** (cone development, or a rectangle when D1 = D2) and **Branch** (pipe
+development). The branch hole and the branch's fitted edge are calculated from the exact
+intersection of the two surfaces, so both have the true 3D length and the branch fits the hole.
+
+**Seams:** the reducer seam runs along the reducer straight through the middle of the branch hole,
+so the hole appears as two half-holes, one on each seam edge. The branch seam is on its shortest
+generator – the top one in the usual case (it moves to the bottom when the reducer shape makes the
+bottom generator shorter, e.g. a horizontal branch on a reducer narrowing upwards).
+
+Preview Options: *Show flat pattern* with **Reducer** and **Branch** tick boxes, *Add annotations*.
+The same fold-line count is used around the reducer and around the branch; fold marks never fall
+inside the hole.
+
 ### SheetMetal (optional 3D check)
 
 `*_Cut` is a closed sketch usable as a SheetMetal base shape; `*_Folds` holds the fold lines
@@ -145,5 +171,5 @@ hvacdev/dxf/                  dependency-free DXF R12 writer
 hvacdev/freecad/              feature objects, task panel, commands, export
 resources/                    icons, task-panel diagrams
 tools/make_elbow_diagram.py   regenerates resources/diagrams/elbow.svg
-tests/                        `python tests/test_elbow.py`, `python tests/test_transition.py` (no FreeCAD needed)
+tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py` (no FreeCAD needed)
 ```

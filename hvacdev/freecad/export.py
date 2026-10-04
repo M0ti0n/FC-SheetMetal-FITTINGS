@@ -118,3 +118,16 @@ def export_sections(sections, path):
                 w.text(g(pos), value, h, rotation=r + rot_deg, center=(r == 0.0))
     w.save(path)
     return [s[0] for s in sections]
+
+
+def export_branch_reducer(obj, path):
+    from hvacdev.freecad.branch_feature import SECTIONS as BR_SECTIONS, BranchReducerFeature
+    sections = []
+    for s in BR_SECTIONS:
+        cut, folds, anno = BranchReducerFeature.children(obj, s)
+        if _visible(cut):
+            sections.append((s, cut, folds if _visible(folds) else None,
+                             anno if _visible(anno) else None))
+    if not sections:
+        raise RuntimeError("No flat pattern is visible - tick Reducer or Branch first.")
+    return export_sections(sections, path)
