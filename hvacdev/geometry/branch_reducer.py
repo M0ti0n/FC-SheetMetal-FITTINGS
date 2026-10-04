@@ -131,6 +131,26 @@ class _Model:
                         b = m
                 return 0.5 * (a + b)
             t = t_lo
+        # no crossing: the generator may only TOUCH the reducer (equal-diameter tee,
+        # side generators of the branch tangent to the main pipe) -> take the closest point
+        best_t, best_f = None, float("inf")
+        t = t_hi
+        while t > t_min:
+            f = self._f(beta, t)
+            if f < best_f:
+                best_t, best_f = t, f
+            t -= step
+        a, b = best_t - step, best_t + step
+        g = (math.sqrt(5) - 1) / 2
+        for _ in range(100):                                 # golden-section refine
+            c, d = b - g * (b - a), a + g * (b - a)
+            if self._f(beta, c) < self._f(beta, d):
+                b = d
+            else:
+                a = c
+        t_touch = 0.5 * (a + b)
+        if abs(self._f(beta, t_touch)) < 1e-4 * (self.R2 + self.r3):
+            return t_touch
         raise ValueError("The branch does not meet the reducer.")
 
 

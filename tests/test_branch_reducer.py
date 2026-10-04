@@ -154,6 +154,22 @@ def test_annotations_off_by_default():
         assert ref and texts
 
 
+def test_straight_pipe_tees_incl_equal_diameter():
+    # D1 = D2: straight pipe; D3 = D is the equal tee where the branch sides only touch
+    for kw in (dict(d3=160, angle=0), dict(d3=390, angle=0),
+               dict(d3=400, angle=0, h1=600, h2=300), dict(d3=400, angle=30, h1=800, h2=400)):
+        p = BranchReducerParams(d1=400, d2=400, **kw)
+        r, b = develop(p)
+        true = true_curve_len(p)
+        assert abs(chain_len(r.hole[0]) + chain_len(r.hole[1]) - true) < 0.05, kw
+        assert abs(chain_len(b.contour[2:-1]) - true) < 0.05, kw
+        x0, y0, x1, y1 = r.bbox()
+        assert abs((x1 - x0) - math.pi * 400) < 1e-6 and abs((y1 - y0) - p.h1) < 1e-6
+    # 90 deg equal tee: the branch side lines reach L + r
+    _, b = develop(BranchReducerParams(d1=400, d2=400, d3=400, angle=0, h1=600, h2=300))
+    assert abs(b.longest - (250 + 200)) < 0.01
+
+
 if __name__ == "__main__":
     n = 0
     for name, fn in list(globals().items()):
