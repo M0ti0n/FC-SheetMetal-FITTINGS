@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: LGPL-2.1-or-later
+import FreeCAD as App
+import FreeCADGui as Gui
+
+from hvacdev.freecad import resources
+
+
+class CmdSegmentedElbow:
+    def GetResources(self):
+        return {
+            "Pixmap": resources.icon("SegmentedElbow.svg"),
+            "MenuText": "Segmented elbow",
+            "ToolTip": "Flat patterns of a round segmented elbow\n"
+                       "(N full middle sections + 2 half end sections)",
+        }
+
+    def IsActive(self):
+        return not Gui.Control.activeDialog()
+
+    def Activated(self):
+        from hvacdev.freecad import elbow_feature as ef
+        from hvacdev.freecad.elbow_taskpanel import ElbowTaskPanel
+        doc = App.ActiveDocument or App.newDocument("HVAC")
+        doc.openTransaction("Segmented elbow")
+        obj = ef.make_elbow(doc)
+        doc.recompute()
+        Gui.Control.showDialog(ElbowTaskPanel(obj, is_new=True))
+        Gui.ActiveDocument.ActiveView.viewTop()
+        Gui.SendMsgToActiveView("ViewFit")
+
+
+class CmdRectRoundTransition:
+    def GetResources(self):
+        return {
+            "Pixmap": resources.icon("RectRoundTransition.svg"),
+            "MenuText": "Rectangular to round transition",
+            "ToolTip": "Flat pattern of a rectangular -> round transition\n"
+                       "(rectangle may be off-centre: A, B, E, F)",
+        }
+
+    def IsActive(self):
+        return not Gui.Control.activeDialog()
+
+    def Activated(self):
+        from hvacdev.freecad import transition_feature as tf
+        from hvacdev.freecad.transition_taskpanel import TransitionTaskPanel
+        doc = App.ActiveDocument or App.newDocument("HVAC")
+        doc.openTransaction("Rectangular to round transition")
+        obj = tf.make_transition(doc)
+        doc.recompute()
+        Gui.Control.showDialog(TransitionTaskPanel(obj, is_new=True))
+        Gui.ActiveDocument.ActiveView.viewTop()
+        Gui.SendMsgToActiveView("ViewFit")
+
+
+def register():
+    Gui.addCommand("HVAC_SegmentedElbow", CmdSegmentedElbow())
+    Gui.addCommand("HVAC_RectRoundTransition", CmdRectRoundTransition())
+    return ["HVAC_SegmentedElbow", "HVAC_RectRoundTransition"]
