@@ -10,8 +10,11 @@ Top view of a flat ring flange:
 Six arc slots on the bolt circle, each with three hole centres.
 Same drawing style as the elbow / transition / branch-reducer diagrams.
 
-    python tools/make_flange_diagram.py            writes the SVG
-    python tools/make_flange_diagram.py --preview  also writes a PNG preview next to it
+    python tools/make_flange_diagram.py            writes flange.svg
+    python tools/make_flange_diagram.py --cross    writes flange_cross.svg: cross marks
+                                                   (drill / tap holes) instead of slots,
+                                                   no M and no 25 dimension
+    add --preview [file.png] to also write a PNG preview
 """
 import math
 import os
@@ -30,6 +33,9 @@ SLOT_C = 30.0                                # distance between end-hole centres
 SLOTS = (90, 30, -30, -90, 150, 210)         # slot positions [deg]
 B_ANGLE = 124.0                              # direction of the B dimension
 E_ANGLE = 233.0                              # direction of the E dimension
+
+CROSS = "--cross" in sys.argv               # cross-mark (drill & tap) version
+CROSS_ARM = 8.0                              # half length of a cross-mark arm [px]
 
 prims = []
 
@@ -61,7 +67,7 @@ circle(R_OUT, 2.2)
 circle(R_IN, 2.2)
 half = math.degrees(SLOT_C / 2 / R_B)        # half angular length of a slot (centre to centre)
 for phi in SLOTS:
-    prims.append(("slot", phi, half))
+    prims.append(("cross", phi) if CROSS else ("slot", phi, half))
 
 # ---- A: inner diameter, on the horizontal axis
 line(pt(R_IN - 1.5, 180), pt(R_IN - 1.5, 0), 1.4, both=True)
@@ -88,8 +94,10 @@ for x in (CX - R_OUT, CX + R_OUT):
 line((CX - R_OUT + 1.5, y_d), (CX + R_OUT - 1.5, y_d), 1.4, both=True)
 text((CX, y_d + 18), "D")
 
-# ---- top slot: "25" (between end-hole centres) and M (slot width)
+# ---- top slot: "25" (between end-hole centres) and M (slot width) - slot version only
 l_c, r_c = pt(R_B, 90 + half), pt(R_B, 90 - half)
+if CROSS:
+    prims_before_slot_dims = len(prims)
 y_dim = CY - R_IN + 20
 for x, y in (l_c, r_c):
     line((x, y + 4), (x, y_dim + 5))                                   # extension lines
@@ -106,6 +114,8 @@ line((x_m, y_top - 20), (x_m, y_top - 1), 1.4, end_arrow=True)
 line((x_m, y_bot + 46), (x_m, y_bot + 1), 1.4, end_arrow=True)
 line((x_m, y_top), (x_m, y_bot), 1.0)
 text((x_m, y_bot + 62), "M")
+if CROSS:
+    del prims[prims_before_slot_dims:]
 
 
 # ------------------------------------------------------------------ SVG
@@ -147,6 +157,14 @@ def svg():
             for d in (phi + half, phi, phi - half):
                 x, y = pt(R_B, d)
                 out.append('<circle cx="%.1f" cy="%.1f" r="2.4" fill="%s"/>' % (x, y, BLACK))
+        elif kind == "cross":
+            _, phi = pr
+            x, y = pt(R_B, phi)
+            for d in (45, -45):
+                ux, uy = math.cos(math.radians(phi + d)), -math.sin(math.radians(phi + d))
+                out.append('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="2.4" '
+                           'stroke-linecap="round"/>' % (x - ux * CROSS_ARM, y - uy * CROSS_ARM,
+                                                         x + ux * CROSS_ARM, y + uy * CROSS_ARM, BLACK))
         elif kind == "text":
             _, p, s = pr
             out.append('<text x="%.1f" y="%.1f" font-family="Arial" font-size="%d" font-weight="bold" '
@@ -191,6 +209,13 @@ def preview(path):
             for d in (phi + half, phi, phi - half):
                 x, y = pt(R_B, d)
                 ax.add_patch(Circle((x, y), 2.4, color="k"))
+        elif kind == "cross":
+            _, phi = pr
+            x, y = pt(R_B, phi)
+            for d in (45, -45):
+                ux, uy = math.cos(math.radians(phi + d)), -math.sin(math.radians(phi + d))
+                ax.plot([x - ux * CROSS_ARM, x + ux * CROSS_ARM], [y - uy * CROSS_ARM, y + uy * CROSS_ARM],
+                        "k", lw=1.8, solid_capstyle="round")
         elif kind == "text":
             _, p, s = pr
             ax.text(p[0], p[1], s, fontsize=FONT_SIZE * 0.62, weight="bold", ha="center", va="center")
@@ -203,7 +228,7 @@ def preview(path):
 
 if __name__ == "__main__":
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    out = os.path.join(root, "resources", "diagrams", "flange.svg")
+    out = os.path.join(root, "resources", "diagrams", "flange_cross.svg" if CROSS else "flange.svg")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     open(out, "w").write(svg())
     print("wrote", out)
