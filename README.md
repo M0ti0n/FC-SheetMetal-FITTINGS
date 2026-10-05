@@ -182,6 +182,20 @@ slots stay inside the ring and do not touch each other.
 **D** and **T** are only written when *Add reference dimensions* or *Add annotations* is on.
 Circles and slots are arcs only (each circle = 2 arcs, each slot = 4 arcs).
 
+### Divided flange (both flange tools)
+
+Preview Options has **Combined** (the whole flange) and **Divided** (the flange cut into 3 sections);
+both can be ticked, each gets its own row.
+
+* Every cut is radial and lies exactly midway between two slots / cross marks – never through one.
+* **N divisible by 3** (3, 6, 9, 12 …): three equal 120° sections → one drawing **×3**.
+* **Otherwise** the holes are split as evenly as possible: two identical sections **A ×2** and one
+  different section **B ×1**, e.g. N 8 → A 3 slots 135° ×2 + B 2 slots 90°; N 10 → A 3 slots 108° ×2 +
+  B 4 slots 144°; N 16 → A 5 × 112.5° ×2 + B 6 × 135°.
+* **A80 and A100 are never divided** (Divided is greyed out).
+* Each section is drawn with its middle pointing up; with annotations or reference dimensions on it
+  is labelled with its name, quantity, angle and number of slots / holes.
+
 ## Threaded flange
 
 Same ring as the flange, but instead of slots each hole position gets an **X cross mark** where the
@@ -218,5 +232,5 @@ hvacdev/dxf/                  dependency-free DXF R12 writer
 hvacdev/freecad/              feature objects, task panel, commands, export
 resources/                    icons, task-panel diagrams
 tools/make_elbow_diagram.py   regenerates resources/diagrams/elbow.svg
-tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py`, `test_flange.py`, `test_flange_thread.py` (no FreeCAD needed)
+tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py`, `test_flange.py`, `test_flange_thread.py`, `test_flange_divide.py` (no FreeCAD needed)
 ```

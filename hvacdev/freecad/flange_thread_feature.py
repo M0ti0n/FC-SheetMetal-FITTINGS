@@ -12,6 +12,8 @@ import FreeCAD as App
 
 from hvacdev.geometry import flange_thread as tg
 from hvacdev.geometry import flange_thread_layout
+from hvacdev.geometry import flange_rows
+from hvacdev.geometry import flange_divide as fd
 from hvacdev.geometry import layout
 from hvacdev.geometry.flange_thread_table import THREADS
 from hvacdev.freecad import annotations
@@ -62,6 +64,9 @@ class ThreadFlangeFeature:
 
         g = "Preview Options"
         add("App::PropertyBool", "ShowFlatPattern", g, "Show the flat pattern in the model space", True)
+        add("App::PropertyBool", "ShowCombined", g, "The whole flange in one piece", True)
+        add("App::PropertyBool", "ShowDivided", g,
+            "The flange cut into 3 sections between the holes (not for A <= 100)", False)
         add("App::PropertyBool", "AddAnnotations", g,
             "Centre lines, B circle and piece label (incl. D and T)", False)
 
@@ -69,6 +74,7 @@ class ThreadFlangeFeature:
         add("App::PropertyLength", "OuterDiameter", g, "D = A + 2E (information)", mode=1)
         add("App::PropertyLength", "TapDrill", g, "Tap drill for the thread", mode=1)
         add("App::PropertyBool", "StandardSize", g, "A is a size from the table", mode=1)
+        add("App::PropertyString", "Sections", g, "Sections of the divided flange", mode=1)
 
         g = "Internal"
         for part in PARTS:
@@ -110,16 +116,23 @@ def regenerate(obj, p=None):
     opts = layout.Options(fold_lines=False, reference_dims=obj.AddReferenceDimensions,
                           fold_labels=False, reference_lines=obj.AddAnnotations,
                           piece_labels=obj.AddAnnotations)
-    ref, dim, texts = flange_thread_layout.annotations(pat, p, opts)
+    rows = flange_rows.build(
+        p, pat, flange_thread_layout.annotations(pat, p, opts),
+        hole_contours=lambda k: [], hole_marks=lambda k: pat.marks[2 * k: 2 * k + 2],
+        hole_centre=lambda k: pat.hole_centres[k],
+        show_combined=obj.ShowCombined, show_divided=obj.ShowDivided,
+        label_sections=obj.AddAnnotations or obj.AddReferenceDimensions, hole_word="holes")
     pl = App.Placement()
     cut, marks, anno = ThreadFlangeFeature.children(obj)
     if cut:
-        _set_sketch(cut, [_seg_geometry(sg) for c in pat.contours for sg in c], pl)
+        _set_sketch(cut, [_seg_geometry(sg) for c in rows.contours for sg in c], pl)
     if marks:
-        _set_sketch(marks, [_line(a, b) for a, b in pat.marks] if obj.AddMarks else [], pl)
+        _set_sketch(marks, [_line(a, b) for a, b in rows.marks] if obj.AddMarks else [], pl)
     if anno:
         anno.Placement = pl
-        anno.Proxy.set_data(anno, ref, dim, texts)
+        anno.Proxy.set_data(anno, rows.ref, rows.dim, rows.texts)
+    obj.Sections = rows.sections if rows.divided else (
+        "" if fd.can_divide(p.a, p.n) else "A %g cannot be divided" % p.a)
     obj.OuterDiameter = p.d
     obj.TapDrill = tg.tap_drill(p.m)
     obj.StandardSize = tg.table_row(p.a) is not None

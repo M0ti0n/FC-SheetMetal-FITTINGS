@@ -135,6 +135,10 @@ def export_branch_reducer(obj, path):
 
 
 def export_flange(obj, path):
+    from hvacdev.geometry.flange_divide import can_divide
+    if not getattr(obj, "ShowCombined", True) and not (
+            getattr(obj, "ShowDivided", False) and can_divide(obj.Diameter.Value, _hole_count(obj))):
+        raise RuntimeError("Nothing to export - tick Combined or Divided.")
     from hvacdev.freecad.flange_feature import FlangeFeature
     cut, anno = FlangeFeature.children(obj)
     if not _visible(cut):
@@ -143,9 +147,17 @@ def export_flange(obj, path):
 
 
 def export_thread_flange(obj, path):
+    from hvacdev.geometry.flange_divide import can_divide
+    if not getattr(obj, "ShowCombined", True) and not (
+            getattr(obj, "ShowDivided", False) and can_divide(obj.Diameter.Value, _hole_count(obj))):
+        raise RuntimeError("Nothing to export - tick Combined or Divided.")
     from hvacdev.freecad.flange_thread_feature import ThreadFlangeFeature
     cut, marks, anno = ThreadFlangeFeature.children(obj)
     if not _visible(cut):
         raise RuntimeError("The flat pattern is hidden - tick Show flat pattern first.")
     return export_sections([("Flange", cut, marks if _visible(marks) else None,
                              anno if _visible(anno) else None)], path, fold_layer="MARK")
+
+
+def _hole_count(obj):
+    return int(getattr(obj, "SlotCount", getattr(obj, "HoleCount", 0)))

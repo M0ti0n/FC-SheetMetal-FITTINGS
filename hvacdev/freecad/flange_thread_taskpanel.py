@@ -3,7 +3,7 @@
 
     Main Parameters        cross diagram + size (A) + B, thread M, N, E, T
     Flat Pattern Options   add cross marks [size], add reference dimensions
-    Preview Options        show flat pattern + Generate, add annotations
+    Preview Options        show flat pattern + Generate; Combined / Divided; add annotations
     Export Options         Export DXF
 """
 
@@ -15,6 +15,7 @@ import FreeCADGui as Gui
 from PySide import QtCore, QtGui
 
 from hvacdev.geometry import flange_thread as tg
+from hvacdev.geometry import flange_divide as fd
 from hvacdev.geometry.flange_thread_table import SIZES, THREADS
 from hvacdev.freecad import resources
 from hvacdev.freecad import flange_thread_feature as tf
@@ -119,6 +120,11 @@ class ThreadFlangeTaskPanel:
         g = QtGui.QGridLayout(w)
         self.cb_show = QtGui.QCheckBox("Show flat pattern")
         self.cb_show.setChecked(o.ShowFlatPattern)
+        self.cb_comb = QtGui.QCheckBox("Combined")
+        self.cb_comb.setChecked(o.ShowCombined)
+        self.cb_comb.setToolTip("The whole flange in one piece")
+        self.cb_div = QtGui.QCheckBox("Divided")
+        self.cb_div.setChecked(o.ShowDivided)
         self.cb_anno = QtGui.QCheckBox("Add annotations")
         self.cb_anno.setChecked(o.AddAnnotations)
         self.cb_anno.setToolTip("Centre lines, B circle and piece label (with D and T)")
@@ -127,7 +133,12 @@ class ThreadFlangeTaskPanel:
         gen.setAutoDefault(False)
         g.addWidget(self.cb_show, 0, 0)
         g.addWidget(gen, 0, 1)
-        g.addWidget(self.cb_anno, 1, 0)
+        g.addWidget(self.cb_comb, 1, 0)
+        g.addWidget(self.cb_div, 2, 0)
+        g.addWidget(self.cb_anno, 3, 0)
+        for cb in (self.cb_comb, self.cb_div):
+            cb.setStyleSheet("margin-left: 22px;")
+            cb.toggled.connect(self._division_changed)
         g.setContentsMargins(9, 9, 9, 9)
         g.setColumnStretch(0, 1)
         gen.clicked.connect(self.generate)
@@ -168,6 +179,7 @@ class ThreadFlangeTaskPanel:
         self._update_info()
 
     def _update_info(self, *_):
+        self._sync_division()
         a = self._a()
         d = a + 2 * _raw(self.e)
         std = tg.table_row(a) is not None
@@ -201,6 +213,8 @@ class ThreadFlangeTaskPanel:
         o.AddReferenceDimensions = self.cb_dims.isChecked()
         o.ShowFlatPattern = self.cb_show.isChecked()
         o.AddAnnotations = self.cb_anno.isChecked()
+        o.ShowCombined = self.cb_comb.isChecked()
+        o.ShowDivided = self.cb_div.isChecked()
         if o.Label.startswith("Flange"):           # keep a name the user typed
             tf.update_label(o)
         return True
@@ -213,6 +227,28 @@ class ThreadFlangeTaskPanel:
 
     def _visibility_changed(self, *_):
         self.obj.ShowFlatPattern = self.cb_show.isChecked()
+        self._sync_division()
+
+    def _sync_division(self, *_):
+        if not hasattr(self, "cb_div"):
+            return
+        ok = fd.can_divide(self._a(), self.n.value())
+        show = self.cb_show.isChecked()
+        self.cb_comb.setEnabled(show)
+        self.cb_div.setEnabled(show and ok)
+        if ok:
+            names = ", ".join("%s x%d" % (nm, q) for nm, q, _h in fd.hole_counts(self.n.value()))
+            self.cb_div.setToolTip("Cut into 3 sections, always midway between two %s:\n%s"
+                                   % ("holes", names))
+        else:
+            self.cb_div.setToolTip("A %g cannot be divided (A80 and A100 are never divided)" % self._a())
+
+    def _division_changed(self, *_):
+        self.obj.ShowCombined = self.cb_comb.isChecked()
+        self.obj.ShowDivided = self.cb_div.isChecked()
+        self.obj.touch()
+        self.doc.recompute()
+        Gui.SendMsgToActiveView("ViewFit")
 
     def _options_changed(self, *_):
         self.obj.AddAnnotations = self.cb_anno.isChecked()
