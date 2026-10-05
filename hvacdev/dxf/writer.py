@@ -8,6 +8,7 @@ Layers:
     REF    - centre / reference lines (centre linetype)
     TEXT   - labels
     DIM    - reference dimensions (drawn as lines + text, no DIMENSION entity)
+    MARK   - scribe / punch marks (drill & tap crosses)
 """
 
 LAYERS = {
@@ -17,6 +18,7 @@ LAYERS = {
     "REF": (3, "CENTER"),
     "TEXT": (2, "CONTINUOUS"),
     "DIM": (4, "CONTINUOUS"),
+    "MARK": (6, "CONTINUOUS"),   # scribe / punch marks (e.g. drill & tap crosses)
 }
 
 LINETYPES = {

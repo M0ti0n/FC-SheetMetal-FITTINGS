@@ -15,7 +15,8 @@ in the SheetMetal workbench for a 3D check.
 | Rectangular → round eccentric transition | ✅ working |
 | Round reducer with branch | ✅ working |
 | Simple reducer | planned |
-| Flange | ✅ working |
+| Flange (slots) | ✅ working |
+| Threaded flange (drill & tap marks) | ✅ working |
 
 ## Install
 
@@ -80,6 +81,7 @@ the model space shows the flat patterns only.
 | REF | heel / side / throat and mid-plane reference lines |
 | DIM | reference dimensions (as lines) |
 | TEXT | piece name, quantity, parameters, fold labels |
+| MARK | scribe / punch marks (threaded-flange drill crosses) |
 
 *Export DXF* writes exactly what is visible, read from the actual sketches – so moving or
 editing a sketch by hand is reflected in the export.
@@ -180,6 +182,28 @@ slots stay inside the ring and do not touch each other.
 **D** and **T** are only written when *Add reference dimensions* or *Add annotations* is on.
 Circles and slots are arcs only (each circle = 2 arcs, each slot = 4 arcs).
 
+## Threaded flange
+
+Same ring as the flange, but instead of slots each hole position gets an **X cross mark** where the
+hole is drilled and tapped after cutting. No M dimension in the diagram – **M is the thread**
+(M6 / M8 / M10 …) and only used for information and the check that the holes fit.
+
+| | |
+|---|---|
+| **A** | inner (nominal) diameter |
+| **B** | diameter the holes lie on |
+| **M** | metric thread; the tap drill is shown (M6 → 5.0, M8 → 6.8, M10 → 8.5) |
+| **N** | number of holes, equally spaced, the first one at the top |
+| **E** | ring width – outer diameter **D = A + 2E** |
+| **T** | recommended thickness (information only) |
+
+44 standard sizes from `parameters_flange_tool-metric_thread.ods`
+(`hvacdev/geometry/flange_thread_table.py`), same size list behaviour as the flange.
+Flat Pattern Options: *Add cross marks* with the mark size (default 10 mm) and *Add reference
+dimensions*. In the DXF the circles are on **CUT** and the crosses on their own layer **MARK**, so
+they can be scribed / punched instead of cut. D and T only appear with reference dimensions or
+annotations on.
+
 ### SheetMetal (optional 3D check)
 
 `*_Cut` is a closed sketch usable as a SheetMetal base shape; `*_Folds` holds the fold lines
@@ -194,5 +218,5 @@ hvacdev/dxf/                  dependency-free DXF R12 writer
 hvacdev/freecad/              feature objects, task panel, commands, export
 resources/                    icons, task-panel diagrams
 tools/make_elbow_diagram.py   regenerates resources/diagrams/elbow.svg
-tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py`, `test_flange.py` (no FreeCAD needed)
+tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py`, `test_flange.py`, `test_flange_thread.py` (no FreeCAD needed)
 ```

@@ -87,8 +87,9 @@ def export_transition(obj, path):
                              anno if _visible(anno) else None)], path)
 
 
-def export_sections(sections, path):
-    """sections: [(name, cut_sketch, folds_sketch or None, annotations or None)]"""
+def export_sections(sections, path, fold_layer="FOLD"):
+    """sections: [(name, cut_sketch, folds_sketch or None, annotations or None)];
+    the second sketch goes to `fold_layer` (FOLD, or MARK for drill crosses)."""
     w = DxfWriter()
     for _name, cut, folds, anno in sections:
         for wire in cut.Shape.Wires:
@@ -98,9 +99,9 @@ def export_sections(sections, path):
             for wire in folds.Shape.Wires:
                 pts, bulges = wire_to_polyline(wire)
                 if len(pts) == 2 and not any(bulges):
-                    w.line(pts[0], pts[1], "FOLD")
+                    w.line(pts[0], pts[1], fold_layer)
                 else:
-                    w.polyline(pts, "FOLD", closed=wire.isClosed(), bulges=bulges)
+                    w.polyline(pts, fold_layer, closed=wire.isClosed(), bulges=bulges)
         if anno is not None:
             pl = anno.Placement
 
@@ -139,3 +140,12 @@ def export_flange(obj, path):
     if not _visible(cut):
         raise RuntimeError("The flat pattern is hidden - tick Show flat pattern first.")
     return export_sections([("Flange", cut, None, anno if _visible(anno) else None)], path)
+
+
+def export_thread_flange(obj, path):
+    from hvacdev.freecad.flange_thread_feature import ThreadFlangeFeature
+    cut, marks, anno = ThreadFlangeFeature.children(obj)
+    if not _visible(cut):
+        raise RuntimeError("The flat pattern is hidden - tick Show flat pattern first.")
+    return export_sections([("Flange", cut, marks if _visible(marks) else None,
+                             anno if _visible(anno) else None)], path, fold_layer="MARK")

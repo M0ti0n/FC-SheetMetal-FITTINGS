@@ -100,9 +100,35 @@ class CmdFlange:
         Gui.SendMsgToActiveView("ViewFit")
 
 
+class CmdThreadFlange:
+    def GetResources(self):
+        return {
+            "Pixmap": resources.icon("ThreadFlange.svg"),
+            "MenuText": "Threaded flange",
+            "ToolTip": "Flat ring flange with drill & tap cross marks (M6 / M8 / M10 ...)\n"
+                       "(standard sizes from the table, or any size)",
+        }
+
+    def IsActive(self):
+        return not Gui.Control.activeDialog()
+
+    def Activated(self):
+        from hvacdev.freecad import flange_thread_feature as tf
+        from hvacdev.freecad.flange_thread_taskpanel import ThreadFlangeTaskPanel
+        doc = App.ActiveDocument or App.newDocument("HVAC")
+        doc.openTransaction("Threaded flange")
+        obj = tf.make_thread_flange(doc)
+        doc.recompute()
+        Gui.Control.showDialog(ThreadFlangeTaskPanel(obj, is_new=True))
+        Gui.ActiveDocument.ActiveView.viewTop()
+        Gui.SendMsgToActiveView("ViewFit")
+
+
 def register():
     Gui.addCommand("HVAC_SegmentedElbow", CmdSegmentedElbow())
     Gui.addCommand("HVAC_RectRoundTransition", CmdRectRoundTransition())
     Gui.addCommand("HVAC_BranchReducer", CmdBranchReducer())
     Gui.addCommand("HVAC_Flange", CmdFlange())
-    return ["HVAC_SegmentedElbow", "HVAC_RectRoundTransition", "HVAC_BranchReducer", "HVAC_Flange"]
+    Gui.addCommand("HVAC_ThreadFlange", CmdThreadFlange())
+    return ["HVAC_SegmentedElbow", "HVAC_RectRoundTransition", "HVAC_BranchReducer", "HVAC_Flange",
+            "HVAC_ThreadFlange"]
