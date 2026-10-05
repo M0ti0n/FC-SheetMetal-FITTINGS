@@ -1,16 +1,20 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-"""Divide a ring flange into 3 sections (shared by both flange tools).
+"""Divide a ring flange into 3 sections of 120 deg (shared by both flange tools).
 
 Rules
 -----
-* Every cut is radial and lies exactly in the middle between two
-  neighbouring holes / slots - never through one.
-* N divisible by 3: three equal 120 deg sections -> one drawing x3.
-* Otherwise the holes are split as evenly as possible (N = 3q + r):
-      r = 1 -> q, q, q+1 holes      r = 2 -> q+1, q+1, q holes
-  The two sections with the same hole count are identical (symmetric)
-  -> section A x2, the third one -> section B x1.
+* The FIRST cut is radial and lies exactly in the middle between two
+  neighbouring holes / slots (next to the top hole).
+* The other two cuts follow at exactly +120 and +240 deg, wherever the
+  holes are - all three sections are 120 deg.
+* N divisible by 3: every cut is midway between holes and the three
+  sections are identical -> one drawing x3.
+* Otherwise the hole pattern is symmetric about the first cut, so the two
+  sections touching it are mirror images of each other (the same flat
+  part) -> Section A x2; the section opposite the first cut -> Section B x1.
 * Flanges with A <= 100 mm are not divided.
+* For custom values a 120 / 240 deg cut could hit a slot or hole: that is
+  reported by cut_clearance() (all table sizes are clear).
 """
 
 import math
@@ -27,23 +31,35 @@ def can_divide(a: float, n: int) -> bool:
     return a > MIN_DIVIDE_A + 1e-9 and n >= 3
 
 
+def first_cut(n: int, start_angle: float = 90.0) -> float:
+    """Angle [deg] of the first cut: midway between the top hole and the next one."""
+    return start_angle + 180.0 / n
+
+
+def _holes_between(n, start_angle, a0, a1):
+    step = 360.0 / n
+    out = []
+    for k in range(n):
+        phi = start_angle + step * k
+        rel = (phi - a0) % 360.0
+        if 1e-9 < rel < (a1 - a0) - 1e-9:
+            out.append(k)
+    return out
+
+
 def hole_counts(n: int):
     """[(name, quantity, holes per section)] for the unique sections."""
-    q, r = divmod(n, 3)
-    if r == 0:
-        return [("Section", 3, q)]
-    if r == 1:
-        return [("Section A", 2, q), ("Section B", 1, q + 1)]
-    return [("Section A", 2, q + 1), ("Section B", 1, q)]
+    secs = plan(n)
+    return [(sec.name, sec.quantity, len(sec.holes)) for sec in secs]
 
 
 @dataclass
 class SectionPlan:
     name: str
     quantity: int
-    holes: List[int]          # hole indices in this section
+    holes: List[int]          # hole indices whose centre lies in this section
     a0: float                 # start cut angle [deg]
-    a1: float                 # end cut angle [deg] (a1 > a0)
+    a1: float                 # end cut angle [deg] (a1 = a0 + 120)
 
     @property
     def span(self):
@@ -55,55 +71,34 @@ class SectionPlan:
 
 
 def plan(n: int, start_angle: float = 90.0) -> List[SectionPlan]:
-    """Unique sections of a flange with n holes, hole k at start + 360 k / n.
-    Section B (or the single section) is centred as close to the bottom
-    (270 deg) as the hole pattern allows; A follows counter-clockwise."""
-    step = 360.0 / n
-    counts = hole_counts(n)
-    sizes = []                                         # all three sections, in order
-    if len(counts) == 1:
-        sizes = [counts[0]] * 3
-    else:
-        a, b = counts
-        sizes = [b, a, a]                              # B first, then the two A
-    hb = sizes[0][2]
-
-    def centre(i, h):                                  # middle angle of h holes starting at i
-        return start_angle + step * (i + (h - 1) / 2.0)
-
-    def off_bottom(i):
-        d = (centre(i, hb) - 270.0) % 360.0
-        return min(d, 360.0 - d)
-
-    first = min(range(n), key=off_bottom)
-    out, i, seen = [], first, set()
-    for name, qty, h in sizes:
-        idx = [(i + k) % n for k in range(h)]
-        a0 = start_angle + step * i - step / 2
-        sec = SectionPlan(name, qty, idx, a0, a0 + h * step)
-        if name not in seen:                           # only one drawing per kind
-            out.append(sec)
-            seen.add(name)
-        i += h
-    out.sort(key=lambda sec: sec.name)                 # Section A before Section B
-    return out
+    """Unique sections: [Section x3] or [Section A x2, Section B x1].
+    Section A starts at the first cut, B is the one opposite the first cut."""
+    c0 = first_cut(n, start_angle)
+    if n % 3 == 0:
+        return [SectionPlan("Section", 3, _holes_between(n, start_angle, c0, c0 + 120.0), c0, c0 + 120.0)]
+    return [SectionPlan("Section A", 2, _holes_between(n, start_angle, c0, c0 + 120.0), c0, c0 + 120.0),
+            SectionPlan("Section B", 1, _holes_between(n, start_angle, c0 + 120.0, c0 + 240.0),
+                        c0 + 120.0, c0 + 240.0)]
 
 
 def cut_angles(n: int, start_angle: float = 90.0) -> List[float]:
     """The three cut angles [deg] on the whole flange."""
+    c0 = first_cut(n, start_angle)
+    return [c0 % 360.0, (c0 + 120.0) % 360.0, (c0 + 240.0) % 360.0]
+
+
+def cut_clearance(n: int, b: float, half_extent: float, start_angle: float = 90.0) -> float:
+    """Smallest distance [mm, along the B circle] between a cut and the edge of
+    a slot / hole; half_extent = half the slot length incl. end caps, or the
+    hole radius. Negative = a cut goes through a slot / hole."""
     step = 360.0 / n
-    secs = plan(n, start_angle)
-    counts = hole_counts(n)
-    if len(counts) == 1:
-        a, sizes = secs[0].a0, [counts[0][2]] * 3
-    else:
-        a = [sec for sec in secs if sec.name == "Section B"][0].a0
-        sizes = [counts[1][2], counts[0][2], counts[0][2]]           # B, A, A
-    cuts = []
-    for h in sizes:
-        cuts.append(a % 360.0)
-        a += h * step
-    return cuts
+    rb = b / 2.0
+    worst = float("inf")
+    for c in cut_angles(n, start_angle):
+        for k in range(n):
+            d = abs(((c - (start_angle + step * k)) + 180.0) % 360.0 - 180.0)
+            worst = min(worst, math.radians(d) * rb - half_extent)
+    return worst
 
 
 def sector_contour(c: Point, r_in: float, r_out: float, a0: float, a1: float) -> List[arcs.Seg]:

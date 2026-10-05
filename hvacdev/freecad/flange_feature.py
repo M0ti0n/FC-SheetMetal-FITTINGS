@@ -69,6 +69,7 @@ class FlangeFeature:
         add("App::PropertyLength", "OuterDiameter", g, "D = A + 2E (information)", mode=1)
         add("App::PropertyBool", "StandardSize", g, "A is a size from the table", mode=1)
         add("App::PropertyString", "Sections", g, "Sections of the divided flange", mode=1)
+        add("App::PropertyString", "Warning", g, "Problems found in the pattern", mode=1)
 
         g = "Internal"
         for part in PARTS:
@@ -123,11 +124,23 @@ def regenerate(obj, p=None):
     if anno:
         anno.Placement = pl
         anno.Proxy.set_data(anno, rows.ref, rows.dim, rows.texts)
+    obj.Warning = ""
+    if rows.divided:
+        clear = fd.cut_clearance(p.n, p.b, fg.SLOT_LENGTH / 2 + p.m / 2, p.start_angle)
+        if clear < fg_min_web():
+            obj.Warning = ("A 120 deg cut goes through a slot (clearance %.1f mm) - "
+                           "change N or B" % clear)
+            App.Console.PrintWarning("HVAC flange: %s\n" % obj.Warning)
     obj.Sections = rows.sections if rows.divided else (
         "" if fd.can_divide(p.a, p.n) else "A %g cannot be divided" % p.a)
     obj.OuterDiameter = p.d
     obj.StandardSize = fg.table_row(p.a) is not None
     apply_visibility(obj)
+
+
+def fg_min_web():
+    from hvacdev.geometry.flange import MIN_WEB
+    return MIN_WEB
 
 
 def apply_visibility(obj):

@@ -223,6 +223,8 @@ class ThreadFlangeTaskPanel:
         if self._apply():
             self.obj.touch()
             self.doc.recompute()
+            if getattr(self.obj, "Warning", ""):
+                QtGui.QMessageBox.warning(None, "Flange", self.obj.Warning)
             Gui.SendMsgToActiveView("ViewFit")
 
     def _visibility_changed(self, *_):

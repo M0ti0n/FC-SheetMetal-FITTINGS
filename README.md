@@ -187,11 +187,15 @@ Circles and slots are arcs only (each circle = 2 arcs, each slot = 4 arcs).
 Preview Options has **Combined** (the whole flange) and **Divided** (the flange cut into 3 sections);
 both can be ticked, each gets its own row.
 
-* Every cut is radial and lies exactly midway between two slots / cross marks – never through one.
-* **N divisible by 3** (3, 6, 9, 12 …): three equal 120° sections → one drawing **×3**.
-* **Otherwise** the holes are split as evenly as possible: two identical sections **A ×2** and one
-  different section **B ×1**, e.g. N 8 → A 3 slots 135° ×2 + B 2 slots 90°; N 10 → A 3 slots 108° ×2 +
-  B 4 slots 144°; N 16 → A 5 × 112.5° ×2 + B 6 × 135°.
+* All three sections are **120°**. The **first cut** lies exactly midway between two slots / cross
+  marks (next to the top one); the other two cuts follow at +120° and +240°, wherever the slots are.
+* **N divisible by 3** (3, 6, 9, 12 …): then every cut is midway and the three sections are identical
+  → one drawing **×3**.
+* **Otherwise** the hole pattern is symmetric about the first cut, so the two sections touching it
+  are mirror images – the same flat part → **Section A ×2**; the section opposite the first cut →
+  **Section B ×1** (N 8: A 3 + B 2 slots, N 10: A 3 + B 4, N 16: A 5 + B 6).
+* For all table sizes the 120° / 240° cuts clear the slots (≥ 4.8 mm) and holes (≥ 18 mm); with
+  custom values a warning is shown if a cut would go through a slot or hole.
 * **A80 and A100 are never divided** (Divided is greyed out).
 * Each section is drawn with its middle pointing up; with annotations or reference dimensions on it
   is labelled with its name, quantity, angle and number of slots / holes.
