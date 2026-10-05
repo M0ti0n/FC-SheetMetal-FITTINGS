@@ -278,6 +278,43 @@ def branch_icon(pal):
     return ic
 
 
+# -------------------------------------------------------------------- flange
+def flange_icon(pal):
+    """Flat ring, lit from the upper left, with six dark arc slots."""
+    ic = Icon()
+    outline = pal[3]
+    cx, cy, ro, ri, rb = 32.0, 32.0, 29.0, 17.5, 23.25
+    seg = 72
+    for k in range(seg):                                   # ring, shaded by direction
+        a0, a1 = 2 * math.pi * k / seg, 2 * math.pi * (k + 1) / seg
+        am = (a0 + a1) / 2
+        lit = 0.5 + 0.5 * math.cos(am - math.radians(135))  # light from the upper left (screen)
+        q = [(cx + ro * math.cos(a0), cy - ro * math.sin(a0)), (cx + ro * math.cos(a1), cy - ro * math.sin(a1)),
+             (cx + ri * math.cos(a1), cy - ri * math.sin(a1)), (cx + ri * math.cos(a0), cy - ri * math.sin(a0))]
+        ic.poly(q, shade(pal, 0.25 + 0.7 * lit))
+    circ = lambda r: [(cx + r * math.cos(2 * math.pi * k / 96), cy - r * math.sin(2 * math.pi * k / 96))
+                      for k in range(96)]
+    ic.line(circ(ro), outline, 2.4, closed=True)
+    ic.line(circ(ri), outline, 2.4, closed=True)
+    w, half = 2.3, math.radians(13)
+    for j in range(6):                                     # slots
+        phi = math.radians(90 + 60 * j)
+        pts = [(cx + (rb + w) * math.cos(phi - half + 2 * half * i / 12),
+                cy - (rb + w) * math.sin(phi - half + 2 * half * i / 12)) for i in range(13)]
+        e1 = (cx + rb * math.cos(phi + half), cy - rb * math.sin(phi + half))
+        rad = phi + half
+        pts += [(e1[0] + w * math.cos(rad + math.pi * i / 8), e1[1] - w * math.sin(rad + math.pi * i / 8))
+                for i in range(9)]
+        pts += [(cx + (rb - w) * math.cos(phi + half - 2 * half * i / 12),
+                 cy - (rb - w) * math.sin(phi + half - 2 * half * i / 12)) for i in range(13)]
+        e0 = (cx + rb * math.cos(phi - half), cy - rb * math.sin(phi - half))
+        rad = phi - half + math.pi
+        pts += [(e0[0] + w * math.cos(rad + math.pi * i / 8), e0[1] - w * math.sin(rad + math.pi * i / 8))
+                for i in range(9)]
+        ic.poly(pts, outline)
+    return ic
+
+
 def write(name, ic, colour, svg_path=None):
     os.makedirs(os.path.join(ICONS, "png"), exist_ok=True)
     os.makedirs(os.path.join(ICONS, "variants"), exist_ok=True)
@@ -297,4 +334,6 @@ if __name__ == "__main__":
               os.path.join(ICONS, "RectRoundTransition.svg") if default else None)
         write("BranchReducer", branch_icon(pal), colour,
               os.path.join(ICONS, "BranchReducer.svg") if default else None)
+        write("Flange", flange_icon(pal), colour,
+              os.path.join(ICONS, "Flange.svg") if default else None)
     print("icons written to", ICONS)

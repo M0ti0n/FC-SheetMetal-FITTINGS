@@ -5,7 +5,8 @@ Top view of a flat ring flange:
     B   bolt (slot) circle diameter
     E   ring width (inner to outer edge)
     M   slot width
-    25  distance between the end-hole centres of a slot
+    25  distance between the end-hole centres of a slot (always 25 mm)
+    D   outer diameter = A + 2E (information)
 Six arc slots on the bolt circle, each with three hole centres.
 Same drawing style as the elbow / transition / branch-reducer diagrams.
 
@@ -16,7 +17,7 @@ import math
 import os
 import sys
 
-W, H = 330, 316
+W, H = 330, 352
 BLACK = "#111"
 BLUE = "#2a56d6"
 AXIS_DASH = "7,3,2,3"
@@ -79,6 +80,13 @@ line(pt(R_IN, E_ANGLE), pt(R_OUT, E_ANGLE), 1.0)
 ex, ey = pt(R_OUT + 10, E_ANGLE)
 en = (math.sin(math.radians(E_ANGLE)), math.cos(math.radians(E_ANGLE)))
 text((ex - en[0] * 16, ey - en[1] * 16), "E")
+
+# ---- D: outer diameter, below the flange (information)
+y_d = CY + R_OUT + 24
+for x in (CX - R_OUT, CX + R_OUT):
+    line((x, CY + 12), (x, y_d + 6))                                  # extension lines
+line((CX - R_OUT + 1.5, y_d), (CX + R_OUT - 1.5, y_d), 1.4, both=True)
+text((CX, y_d + 18), "D")
 
 # ---- top slot: "25" (between end-hole centres) and M (slot width)
 l_c, r_c = pt(R_B, 90 + half), pt(R_B, 90 - half)

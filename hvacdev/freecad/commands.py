@@ -77,8 +77,32 @@ class CmdBranchReducer:
         Gui.SendMsgToActiveView("ViewFit")
 
 
+class CmdFlange:
+    def GetResources(self):
+        return {
+            "Pixmap": resources.icon("Flange.svg"),
+            "MenuText": "Flange",
+            "ToolTip": "Flat ring flange with arc slots\n(standard sizes from the table, or any size)",
+        }
+
+    def IsActive(self):
+        return not Gui.Control.activeDialog()
+
+    def Activated(self):
+        from hvacdev.freecad import flange_feature as ff
+        from hvacdev.freecad.flange_taskpanel import FlangeTaskPanel
+        doc = App.ActiveDocument or App.newDocument("HVAC")
+        doc.openTransaction("Flange")
+        obj = ff.make_flange(doc)
+        doc.recompute()
+        Gui.Control.showDialog(FlangeTaskPanel(obj, is_new=True))
+        Gui.ActiveDocument.ActiveView.viewTop()
+        Gui.SendMsgToActiveView("ViewFit")
+
+
 def register():
     Gui.addCommand("HVAC_SegmentedElbow", CmdSegmentedElbow())
     Gui.addCommand("HVAC_RectRoundTransition", CmdRectRoundTransition())
     Gui.addCommand("HVAC_BranchReducer", CmdBranchReducer())
-    return ["HVAC_SegmentedElbow", "HVAC_RectRoundTransition", "HVAC_BranchReducer"]
+    Gui.addCommand("HVAC_Flange", CmdFlange())
+    return ["HVAC_SegmentedElbow", "HVAC_RectRoundTransition", "HVAC_BranchReducer", "HVAC_Flange"]

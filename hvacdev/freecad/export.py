@@ -131,3 +131,11 @@ def export_branch_reducer(obj, path):
     if not sections:
         raise RuntimeError("No flat pattern is visible - tick Reducer or Branch first.")
     return export_sections(sections, path)
+
+
+def export_flange(obj, path):
+    from hvacdev.freecad.flange_feature import FlangeFeature
+    cut, anno = FlangeFeature.children(obj)
+    if not _visible(cut):
+        raise RuntimeError("The flat pattern is hidden - tick Show flat pattern first.")
+    return export_sections([("Flange", cut, None, anno if _visible(anno) else None)], path)

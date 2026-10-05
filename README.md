@@ -15,6 +15,7 @@ in the SheetMetal workbench for a 3D check.
 | Rectangular → round eccentric transition | ✅ working |
 | Round reducer with branch | ✅ working |
 | Simple reducer | planned |
+| Flange | ✅ working |
 
 ## Install
 
@@ -157,6 +158,28 @@ Preview Options: *Show flat pattern* with **Reducer** and **Branch** tick boxes,
 The same fold-line count is used around the reducer and around the branch; fold marks never fall
 inside the hole.
 
+## Flange
+
+Flat ring flange with arc slots.
+
+| | |
+|---|---|
+| **A** | inner (nominal) diameter |
+| **B** | diameter the slots lie on |
+| **M** | slot width; slots are always **25 mm** between the end-hole centres |
+| **N** | number of slots, equally spaced, the first one at the top |
+| **E** | ring width – outer diameter **D = A + 2E** |
+| **T** | recommended thickness (information only) |
+
+*Diameter (A)* is an editable list of the 44 standard sizes (A80 … A820, from
+`parameters_flange_tool.ods`, stored in `hvacdev/geometry/flange_table.py`). Picking a size fills in
+B, M, N, E and T; any other A can be typed – the values of the nearest smaller standard size are
+then used (same B – A offset). Every value can still be changed by hand. The tool checks that the
+slots stay inside the ring and do not touch each other.
+
+**D** and **T** are only written when *Add reference dimensions* or *Add annotations* is on.
+Circles and slots are arcs only (each circle = 2 arcs, each slot = 4 arcs).
+
 ### SheetMetal (optional 3D check)
 
 `*_Cut` is a closed sketch usable as a SheetMetal base shape; `*_Folds` holds the fold lines
@@ -171,5 +194,5 @@ hvacdev/dxf/                  dependency-free DXF R12 writer
 hvacdev/freecad/              feature objects, task panel, commands, export
 resources/                    icons, task-panel diagrams
 tools/make_elbow_diagram.py   regenerates resources/diagrams/elbow.svg
-tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py` (no FreeCAD needed)
+tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py`, `test_flange.py` (no FreeCAD needed)
 ```
