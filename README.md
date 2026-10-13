@@ -3,265 +3,222 @@
 Flat patterns of sheet-metal duct fittings, HACO style:
 **choose fitting → enter dimensions → flat pattern in the model space → check → export DXF.**
 
-Everything is calculated on the **neutral surface** (no sheet thickness, no K-factor).
-The flat pattern is the main result; the generated sketches can optionally be used
-in the SheetMetal workbench for a 3D check.
+<p align="center"><img src="docs/images/toolbar.png" alt="HVAC Fittings toolbar" width="490"></p>
 
-## Status (v0.1)
+Everything is calculated on the **neutral surface** (no sheet thickness, no K-factor). The flat
+pattern is the main result: closed sketches made of lines and arcs only, exported as a clean DXF
+with layers for cutting, fold marks and annotations.
 
-| Fitting | Status |
-|---|---|
-| Round segmented elbow | ✅ working |
-| Rectangular → round eccentric transition | ✅ working |
-| Round reducer with branch | ✅ working |
-| Simple reducer | planned |
-| Flange (slots) | ✅ working |
-| Threaded flange (drill & tap marks) | ✅ working |
-| Screw flight (screw conveyor / Archimedes screw) | ✅ working |
+## ⬇ Download
 
-## Install
+**[Download HVACFittings.zip](https://github.com/M0ti0n/FC-SheetMetal-FITTINGS/raw/main/DOWNLOAD/HVACFittings.zip)** – latest version **v0.8.1**
 
-Copy (or `git clone`) this folder into your FreeCAD `Mod` directory and restart FreeCAD:
+Older versions: [DOWNLOAD/OLD](DOWNLOAD/OLD)
 
-| OS | Mod folder (FreeCAD 1.0) |
-|---|---|
-| Windows | `%APPDATA%\FreeCAD\Mod\` (0.21: `%APPDATA%\FreeCAD\Mod\`) |
-| Linux | `~/.local/share/FreeCAD/Mod/` |
-| macOS | `~/Library/Application Support/FreeCAD/Mod/` |
+### Install
 
-Tip: in FreeCAD's Python console, `App.getUserAppDataDir()` prints the folder that contains `Mod`.
-Then pick **HVAC Fittings** in the workbench selector. No extra Python packages are needed.
+1. Unzip `HVACFittings.zip` into your FreeCAD **Mod** folder, so that you get `Mod/HVACFittings/`:
 
-## Segmented elbow
+   | OS | Mod folder |
+   |---|---|
+   | Windows | `%APPDATA%\FreeCAD\Mod\` |
+   | Linux | `~/.local/share/FreeCAD/Mod/` |
+   | macOS | `~/Library/Application Support/FreeCAD/Mod/` |
 
-Parameters (see the diagram in the task panel):
+   Not sure? `App.getUserAppDataDir()` in FreeCAD's Python console prints the folder that contains `Mod`.
+2. Delete an older `HVACFittings` (or `HVACDevelopments`) folder there first.
+3. Restart FreeCAD and pick **HVAC Fittings** in the workbench selector.
+
+No extra Python packages are needed. Requires FreeCAD 0.21 or newer.
+
+## Tools
+
+| | Tool | Makes |
+|:-:|---|---|
+| <img src="resources/icons/png/SegmentedElbow_blue_64.png" width="32"> | [Segmented elbow](#segmented-elbow) | middle and end sections of a round segmented elbow |
+| <img src="resources/icons/png/RectRoundTransition_blue_64.png" width="32"> | [Rectangular to round transition](#rectangular-to-round-transition) | off-centre rectangle → round, in one piece or split into short / long side parts |
+| <img src="resources/icons/png/BranchReducer_blue_64.png" width="32"> | [Branch reducer](#branch-reducer) | round reducer (or straight pipe) with a round branch at any angle |
+| <img src="resources/icons/png/Flange_blue_64.png" width="32"> | [Flange](#flange) | flat ring flange with arc slots, whole or in 3 sections |
+| <img src="resources/icons/png/ThreadFlange_blue_64.png" width="32"> | [Threaded flange](#threaded-flange) | flat ring flange with drill & tap cross marks, whole or in 3 sections |
+| <img src="resources/icons/png/ScrewFlight_blue_64.png" width="32"> | [Screw flight](#screw-flight) | blank of one pitch of a screw conveyor flight + number of pieces |
+
+All tools work the same way: the **task panel** shows a parameter diagram, *Flat Pattern Options*,
+*Preview Options* (what is shown – Generate updates the model space) and *Export DXF*.
+Reference dimensions, labels and annotations are **off by default**, so a fresh DXF only contains
+what is cut and marked. Double-click a fitting in the tree to edit it again.
+
+---
+
+### <img src="resources/icons/png/SegmentedElbow_blue_64.png" width="28"> Segmented elbow
+
+<table><tr>
+<td width="320" valign="top"><img src="docs/images/elbow_panel.png" width="300" alt="Segmented elbow task panel"></td>
+<td valign="top"><img src="docs/images/elbow_pattern.png" width="420" alt="Elbow flat patterns"><br>
+<sub>End section ×2 (bottom) and middle section ×3, with fold marks</sub></td>
+</tr></table>
 
 | | |
 |---|---|
 | **D** | diameter (neutral) |
 | **A** | elbow angle |
 | **R** | centreline radius |
-| **N** | number of **full middle sections**; the 2 end sections (**B**) are added automatically |
+| **N** | number of **full middle sections** – the 2 end sections (**B**) are added automatically |
 
-Convention: every end section is exactly half of a middle section, cut perpendicular to the
-duct axis, so one middle section spans `A / (N + 1)`.
-Example: A = 90°, N = 3 → ½ + 3 + ½ pieces, 22.5° per middle section.
+* Every end section is exactly half of a middle section, so one middle section spans `A / (N + 1)`
+  (A 90°, N 3 → ½ + 3 + ½ pieces, 22.5° each).
+* Development `h(φ) = (R + D/2·cos φ) · tan(θ/2)`; developed length `π·D`.
+* Fold marks for the press brake: N fold lines around, drawn as two **15 mm** marks **2 mm** inside
+  each cut edge (length and gap in the property editor).
+* Seam on the side (mid-length seam) by default; *SeamPosition* = Side / Throat / Heel.
 
-Development (x around the circumference, y along the axis):
-`h(φ) = (R + D/2·cos φ) · tan(θ/2)`, θ = A/(N+1), φ = 0 at the heel.
-Middle section: `−h … +h`. End section: `0 … +h`. Developed length `π·D`.
+### <img src="resources/icons/png/RectRoundTransition_blue_64.png" width="28"> Rectangular to round transition
 
-### Tree
-
-```
-Elbow D400 A90 R800 N3        <- all parameters (also editable in the property editor)
-├─ Middle Section x3
-│  ├─ Middle_Cut              <- Sketch: closed cutting contour
-│  ├─ Middle_Folds            <- Sketch: folding lines
-│  └─ Middle_Annotations      <- reference lines, dimensions, labels
-└─ End Section x2
-   ├─ End_Cut
-   ├─ End_Folds
-   └─ End_Annotations
-```
-
-Defaults: **Add reference dimensions**, **Add folding labels** and **Add annotations** are off, so a
-fresh pattern (and its DXF) contains only the cut contour and the fold marks. *Add annotations*
-(Preview Options) adds the heel / side / throat and mid-plane reference lines plus the piece name,
-quantity and parameters.
-
-Double-click the elbow to reopen the task panel. *Preview Options* only toggles what is shown;
-the model space shows the flat patterns only.
-
-### DXF (R12, layers)
-
-| Layer | Content |
-|---|---|
-| CUT | cutting contour: one closed polyline of lines + arcs (arcs as bulges, max 0.01 mm from the true curve) |
-| FOLD | press-brake fold marks: two 15 mm lines per fold, starting 2 mm inside each cut edge |
-| REF | heel / side / throat and mid-plane reference lines |
-| DIM | reference dimensions (as lines) |
-| TEXT | piece name, quantity, parameters, fold labels |
-| MARK | scribe / punch marks (threaded-flange drill crosses) |
-
-*Export DXF* writes exactly what is visible, read from the actual sketches – so moving or
-editing a sketch by hand is reflected in the export.
-
-**No splines anywhere.** The cut curves are fitted with circular arcs (≤ 0.01 mm deviation), both in the
-sketches and in the DXF, so even FreeCAD's own *File → Export* produces arcs, not splines.
-
-Fold marks: **FoldMarkLength** (15 mm) and **FoldMarkGap** (2 mm from the edge) are in the property editor.
-If a piece is too short for two separate marks, they merge into one line (gaps kept).
-
-Extra property (property editor only): **SeamPosition** = Side (default, mid-length seam) / Throat / Heel.
-
-## Rectangular → round transition
-
-Parameters (see the diagram in the task panel):
+<table><tr>
+<td width="320" valign="top"><img src="docs/images/transition_panel.png" width="300" alt="Transition task panel"></td>
+<td valign="top"><img src="docs/images/transition_pattern.png" width="420" alt="Transition flat patterns"><br>
+<sub>Combined (bottom), Short Side (middle) and Long Side (top) all ticked</sub></td>
+</tr></table>
 
 | | |
 |---|---|
-| **A, B** | AB side: rectangle edge left / right of the round centre (side length A + B) |
-| **E, F** | EF side: rectangle edge above / below the round centre (side length E + F) |
-| **D** | diameter of the round end (neutral) |
-| **H** | height between the rectangular and the round end |
-| **N** | sections per quarter of the round → 4 × (N + 1) fold lines |
+| **A, B** | AB side: rectangle edge left / right of the round centre |
+| **E, F** | EF side: rectangle edge above / below the round centre |
+| **D** | diameter of the round end |
+| **H** | height |
+| **N** | sections per quarter of the round |
 
-Development by triangulation: each rectangle corner fans out to its quarter of the round
-(oblique cone), each rectangle side is one flat triangle. The round edge is developed exactly
-(length π·D) and written as arcs; every developed length equals its 3D length.
+* Triangulation: every developed length equals its true 3D length, the round edge is exactly `π·D`.
+* **Seam** on the longer rectangle side, straight down from the round (splits that side into A/B or E/F).
+* Preview patterns, any combination: **Combined** (one piece), **Short Side** (short-side triangle with
+  the corner parts bent on both sides = half of the round), **Long Side** (flat long-side triangle).
+  Off-centre rectangles give two different short / long pieces; centred ones are drawn once ×2.
+* Fold marks only at the round edge (the fold lines of a corner all meet in one point).
 
-**Seam:** on the longer rectangle side (AB side if A + B ≥ E + F, otherwise EF side), running from
-the round straight down to that side – on an AB side it splits the side into A and B, on an EF side
-into E and F. Of the two parallel long sides the one farther from the round centre is used;
-*SeamSide* in the property editor overrides this.
+### <img src="resources/icons/png/BranchReducer_blue_64.png" width="28"> Branch reducer
 
-**Fold marks** are drawn only at the round edge (15 mm, 2 mm in): all fold lines of a fan meet in the
-rectangle corner, so marks there would sit on top of each other.
-
-Preview Options: *Show flat pattern* with the tick boxes **Combined**, **Short Side** and **Long Side**
-(any combination; each ticked pattern gets its own row in the model space and in the DXF), and
-*Add annotations* (triangulation lines + piece label).
-
-| Pattern | Pieces |
-|---|---|
-| **Combined** | whole fitting in one piece, seam on the longer side |
-| **Short Side** | each short-side triangle with the corner parts bent on both sides of it (half of the round) |
-| **Long Side** | each long-side triangle, flat, no round parts |
-
-Short Side + Long Side together make the whole fitting (4 pieces, joined along the long-side
-triangle edges; the joint lengths match exactly). Because the rectangle can be off-centre, the two
-short (or long) pieces differ; when the rectangle is centred across them they are the same part and
-are generated once as ×2. Each piece is laid with its rectangle edge on the x axis.
-If the pattern would overlap itself (very low H), a warning is shown.
-
-## Branch reducer (round reducer with branch)
-
-Parameters (see the diagram in the task panel):
+<table><tr>
+<td width="320" valign="top"><img src="docs/images/branch_reducer_panel.png" width="300" alt="Branch reducer task panel"></td>
+<td valign="top"><img src="docs/images/branch_reducer_pattern.png" width="420" alt="Branch reducer flat patterns"><br>
+<sub>Reducer with the two half-holes on its seam edges, branch above</sub></td>
+</tr></table>
 
 | | |
 |---|---|
-| **D1 / D2** | reducer diameter at the top / bottom (neutral) |
+| **D1 / D2** | reducer diameter at the top / bottom (D1 = D2 → straight pipe: tee / lateral) |
 | **H1** | reducer height |
 | **H2** | height where the branch axis meets the reducer side |
-| **D3** | branch diameter (neutral) |
-| **L** | from that point along the branch axis to the (square) branch end |
-| **A** | branch angle above the horizontal |
+| **D3** | branch diameter (up to D for an equal tee) |
+| **L** | from that point along the branch axis to the branch end |
+| **A** | branch angle above the horizontal (negative = pointing down) |
 
-Two pieces: **Reducer** (cone development, or a rectangle when D1 = D2) and **Branch** (pipe
-development). The branch hole and the branch's fitted edge are calculated from the exact
-intersection of the two surfaces, so both have the true 3D length and the branch fits the hole.
+* Hole and branch edge come from the exact intersection of the two surfaces – the branch fits the hole.
+* **Reducer seam** straight through the middle of the branch hole (two half-holes);
+  **branch seam** on its shortest generator.
 
-**Seams:** the reducer seam runs along the reducer straight through the middle of the branch hole,
-so the hole appears as two half-holes, one on each seam edge. The branch seam is on its shortest
-generator – the top one in the usual case (it moves to the bottom when the reducer shape makes the
-bottom generator shorter, e.g. a horizontal branch on a reducer narrowing upwards).
+### <img src="resources/icons/png/Flange_blue_64.png" width="28"> Flange
 
-Preview Options: *Show flat pattern* with **Reducer** and **Branch** tick boxes, *Add annotations*.
-The same fold-line count is used around the reducer and around the branch; fold marks never fall
-inside the hole.
-
-## Flange
-
-Flat ring flange with arc slots.
+<table><tr>
+<td width="320" valign="top"><img src="docs/images/flange_panel.png" width="300" alt="Flange task panel"></td>
+<td valign="top"><img src="docs/images/flange_pattern.png" width="420" alt="Flange flat patterns"><br>
+<sub>A400: whole flange (Combined) and the sections (Divided): A ×2, B ×1</sub></td>
+</tr></table>
 
 | | |
 |---|---|
-| **A** | inner (nominal) diameter |
+| **A** | inner (nominal) diameter – editable list of **44 standard sizes** (A80 … A820) |
 | **B** | diameter the slots lie on |
 | **M** | slot width; slots are always **25 mm** between the end-hole centres |
 | **N** | number of slots, equally spaced, the first one at the top |
-| **E** | ring width – outer diameter **D = A + 2E** |
-| **T** | recommended thickness (information only) |
+| **E** | ring width → outer diameter **D = A + 2E** (information) |
+| **T** | recommended thickness (information) |
 
-*Diameter (A)* is an editable list of the 44 standard sizes (A80 … A820, from
-`parameters_flange_tool.ods`, stored in `hvacdev/geometry/flange_table.py`). Picking a size fills in
-B, M, N, E and T; any other A can be typed – the values of the nearest smaller standard size are
-then used (same B – A offset). Every value can still be changed by hand. The tool checks that the
-slots stay inside the ring and do not touch each other.
+* Picking a size fills in B, M, N, E, T from the table; any other A takes the values of the nearest
+  smaller size. Everything can still be changed by hand.
+* **Divided:** 3 sections of 120°. The first cut is midway between two slots, the others follow at
+  +120° / +240°. N divisible by 3 → one section ×3; otherwise section **A ×2** (mirror images
+  either side of the first cut) and **B ×1**. A80 and A100 are not divided.
+* D and T are written only with reference dimensions or annotations on.
 
-**D** and **T** are only written when *Add reference dimensions* or *Add annotations* is on.
-Circles and slots are arcs only (each circle = 2 arcs, each slot = 4 arcs).
+### <img src="resources/icons/png/ThreadFlange_blue_64.png" width="28"> Threaded flange
 
-### Divided flange (both flange tools)
+<table><tr>
+<td width="320" valign="top"><img src="docs/images/thread_flange_panel.png" width="300" alt="Threaded flange task panel"></td>
+<td valign="top"><img src="docs/images/thread_flange_pattern.png" width="420" alt="Threaded flange flat patterns"><br>
+<sub>A400 M8: X marks where the holes are drilled and tapped</sub></td>
+</tr></table>
 
-Preview Options has **Combined** (the whole flange) and **Divided** (the flange cut into 3 sections);
-both can be ticked, each gets its own row.
+Same ring and the same **Combined / Divided** options as the flange, but each hole position gets an
+**X cross mark** (own DXF layer **MARK**, mark size adjustable) instead of a slot.
+**M** is the thread (M6 / M8 / M10 …): the panel shows the tap drill (M6 → 5.0, M8 → 6.8,
+M10 → 8.5) and checks that the holes fit in the ring. 44 standard sizes from its own table.
 
-* All three sections are **120°**. The **first cut** lies exactly midway between two slots / cross
-  marks (next to the top one); the other two cuts follow at +120° and +240°, wherever the slots are.
-* **N divisible by 3** (3, 6, 9, 12 …): then every cut is midway and the three sections are identical
-  → one drawing **×3**.
-* **Otherwise** the hole pattern is symmetric about the first cut, so the two sections touching it
-  are mirror images – the same flat part → **Section A ×2**; the section opposite the first cut →
-  **Section B ×1** (N 8: A 3 + B 2 slots, N 10: A 3 + B 4, N 16: A 5 + B 6).
-* For all table sizes the 120° / 240° cuts clear the slots (≥ 4.8 mm) and holes (≥ 18 mm); with
-  custom values a warning is shown if a cut would go through a slot or hole.
-* **A80 and A100 are never divided** (Divided is greyed out).
-* Each section is drawn with its middle pointing up; with annotations or reference dimensions on it
-  is labelled with its name, quantity, angle and number of slots / holes.
+### <img src="resources/icons/png/ScrewFlight_blue_64.png" width="28"> Screw flight
 
-## Threaded flange
-
-Same ring as the flange, but instead of slots each hole position gets an **X cross mark** where the
-hole is drilled and tapped after cutting. No M dimension in the diagram – **M is the thread**
-(M6 / M8 / M10 …) and only used for information and the check that the holes fit.
+<table><tr>
+<td width="320" valign="top"><img src="docs/images/screw_panel.png" width="300" alt="Screw flight task panel"></td>
+<td valign="top"><img src="docs/images/screw_pattern.png" width="300" alt="Screw flight blank"><br>
+<sub>Blank for one pitch, extended to a 6 mm gap at the inner edge</sub></td>
+</tr></table>
 
 | | |
 |---|---|
-| **A** | inner (nominal) diameter |
-| **B** | diameter the holes lie on |
-| **M** | metric thread; the tap drill is shown (M6 → 5.0, M8 → 6.8, M10 → 8.5) |
-| **N** | number of holes, equally spaced, the first one at the top |
-| **E** | ring width – outer diameter **D = A + 2E** |
-| **T** | recommended thickness (information only) |
-
-44 standard sizes from `parameters_flange_tool-metric_thread.ods`
-(`hvacdev/geometry/flange_thread_table.py`), same size list behaviour as the flange.
-Flat Pattern Options: *Add cross marks* with the mark size (default 10 mm) and *Add reference
-dimensions*. In the DXF the circles are on **CUT** and the crosses on their own layer **MARK**, so
-they can be scribed / punched instead of cut. D and T only appear with reference dimensions or
-annotations on.
-
-## Screw flight (screw conveyor / Archimedes screw)
-
-Blank for one pitch of a screw flight: a ring with a gap.
-
-| | |
-|---|---|
-| **OD** | outer diameter of the flight |
-| **ID** | inner diameter of the flight (shaft) |
+| **OD / ID** | outer / inner diameter of the flight |
 | **P** | pitch |
 | **L** | screw length → **pieces = L / P rounded up** |
-| **Gap** | gap between the cut ends at the inner edge (default 6 mm) |
-
-Standard development (the same as the KOSOVNICA calculator, but with exact π – the sheet uses
-π = 3.14 in the angle, which makes it ~0.15° too large):
-
-    Li = √((π·ID)² + P²)   Lo = √((π·OD)² + P²)   h = (OD − ID)/2
-    Ri = h·Li / (Lo − Li)  Ro = Ri + h            calculated angle = Li / Ri
-
-Inner and outer edges get exactly the helix lengths. A flight cannot be developed exactly; between
-the edges the blank is 1–4 % longer than the helix and is stretched when it is formed.
-
-The calculated blank is less than 360°, so it is **extended until the two cut ends are Gap mm
-apart at the inner edge** (the closest point): blank angle = 360° − 2·asin(Gap / 2Ri). The task
-panel shows all results live (radii, calculated angle, extension, blank angle, outer gap, pieces);
-with annotations on, a reference line marks where the calculated part ends and the extension starts.
-
-### SheetMetal (optional 3D check)
-
-`*_Cut` is a closed sketch usable as a SheetMetal base shape; `*_Folds` holds the fold lines
-for *Fold on line*.
-
-## Layout
+| **Gap** | gap left between the cut ends at the inner edge (default 6 mm) |
 
 ```
-InitGui.py / Init.py          workbench registration
-hvacdev/geometry/             pure-Python development math, arc fitting, sheet layout (no FreeCAD)
-hvacdev/dxf/                  dependency-free DXF R12 writer
-hvacdev/freecad/              feature objects, task panel, commands, export
-resources/                    icons, task-panel diagrams
-tools/make_elbow_diagram.py   regenerates resources/diagrams/elbow.svg
-tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py`, `test_flange.py`, `test_flange_thread.py`, `test_flange_divide.py`, `test_screw.py` (no FreeCAD needed)
+Li = √((π·ID)² + P²)   Lo = √((π·OD)² + P²)   h = (OD − ID) / 2
+Ri = h·Li / (Lo − Li)  Ro = Ri + h            calculated angle = Li / Ri
 ```
+
+* The calculated blank is less than 360°, so it is **extended until the cut ends are Gap mm apart**
+  at the inner edge: blank angle = 360° − 2·asin(Gap / 2Ri). All results are shown live in the panel.
+* Inner and outer edges have exactly the helix lengths; in between the blank is 1–4 % longer and
+  is stretched when formed (a helicoid cannot be developed exactly).
+
+---
+
+## Output
+
+**Tree:** each fitting holds its parameters; under it are closed **`*_Cut`** sketches (the cutting
+contour), **`*_Folds`** / **`*_Marks`** sketches and an annotation object. The `_Cut` sketches can be
+used as a SheetMetal base shape for a 3D check.
+
+**DXF (R12)** – *Export DXF* writes exactly what is visible, read from the sketches (manual edits
+are included):
+
+| Layer | Content |
+|---|---|
+| CUT | cutting contours: closed polylines of lines + arcs (≤ 0.01 mm from the true curve) |
+| FOLD | press-brake fold marks |
+| MARK | scribe / punch marks (threaded-flange crosses) |
+| REF | reference lines (heel / throat, triangulation, centre lines …) |
+| DIM | reference dimensions (as lines) |
+| TEXT | piece names, quantities, parameters, labels |
+
+**No splines anywhere** – curves are fitted with arcs in the sketches too, so even FreeCAD's own
+*File → Export* produces arcs.
+
+## Development
+
+```
+InitGui.py / Init.py   workbench registration
+hvacdev/geometry/      pure-Python development math, arc fitting, layouts (no FreeCAD)
+hvacdev/dxf/           dependency-free DXF R12 writer
+hvacdev/freecad/       feature objects, task panels, commands, export
+resources/             icons and task-panel diagrams
+tests/                 python tests/test_*.py   (no FreeCAD needed)
+tools/                 generators for diagrams, icons, README images and the release zip
+DOWNLOAD/              HVACFittings.zip (latest) and OLD/ (previous builds)
+```
+
+**New release:** raise `<version>` in `package.xml`, then run `python tools/release.py` – it moves
+the current `DOWNLOAD/HVACFittings.zip` to `DOWNLOAD/OLD/HVACFittings-v<old version>.zip` and builds
+the new one. README images: `python tools/make_panel_images.py` and `python tools/make_readme_images.py`.
+
+Planned: simple concentric / eccentric reducer.
+
+## License
+
+LGPL-2.1-or-later, the same as FreeCAD.
