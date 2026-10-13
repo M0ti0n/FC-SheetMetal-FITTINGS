@@ -124,11 +124,36 @@ class CmdThreadFlange:
         Gui.SendMsgToActiveView("ViewFit")
 
 
+class CmdScrewFlight:
+    def GetResources(self):
+        return {
+            "Pixmap": resources.icon("ScrewFlight.svg"),
+            "MenuText": "Screw flight",
+            "ToolTip": "Blank of a screw conveyor flight for one pitch\n"
+                       "(extended to a set gap at the inner edge, number of pieces from L / P)",
+        }
+
+    def IsActive(self):
+        return not Gui.Control.activeDialog()
+
+    def Activated(self):
+        from hvacdev.freecad import screw_feature as sf
+        from hvacdev.freecad.screw_taskpanel import ScrewTaskPanel
+        doc = App.ActiveDocument or App.newDocument("HVAC")
+        doc.openTransaction("Screw flight")
+        obj = sf.make_screw(doc)
+        doc.recompute()
+        Gui.Control.showDialog(ScrewTaskPanel(obj, is_new=True))
+        Gui.ActiveDocument.ActiveView.viewTop()
+        Gui.SendMsgToActiveView("ViewFit")
+
+
 def register():
     Gui.addCommand("HVAC_SegmentedElbow", CmdSegmentedElbow())
     Gui.addCommand("HVAC_RectRoundTransition", CmdRectRoundTransition())
     Gui.addCommand("HVAC_BranchReducer", CmdBranchReducer())
     Gui.addCommand("HVAC_Flange", CmdFlange())
     Gui.addCommand("HVAC_ThreadFlange", CmdThreadFlange())
+    Gui.addCommand("HVAC_ScrewFlight", CmdScrewFlight())
     return ["HVAC_SegmentedElbow", "HVAC_RectRoundTransition", "HVAC_BranchReducer", "HVAC_Flange",
-            "HVAC_ThreadFlange"]
+            "HVAC_ThreadFlange", "HVAC_ScrewFlight"]

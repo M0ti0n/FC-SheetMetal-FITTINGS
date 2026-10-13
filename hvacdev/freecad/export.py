@@ -161,3 +161,11 @@ def export_thread_flange(obj, path):
 
 def _hole_count(obj):
     return int(getattr(obj, "SlotCount", getattr(obj, "HoleCount", 0)))
+
+
+def export_screw(obj, path):
+    from hvacdev.freecad.screw_feature import ScrewFeature
+    cut, anno = ScrewFeature.children(obj)
+    if not _visible(cut):
+        raise RuntimeError("The flat pattern is hidden - tick Show flat pattern first.")
+    return export_sections([("Screw flight", cut, None, anno if _visible(anno) else None)], path)

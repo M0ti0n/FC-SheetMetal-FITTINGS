@@ -17,6 +17,7 @@ in the SheetMetal workbench for a 3D check.
 | Simple reducer | planned |
 | Flange (slots) | ✅ working |
 | Threaded flange (drill & tap marks) | ✅ working |
+| Screw flight (screw conveyor / Archimedes screw) | ✅ working |
 
 ## Install
 
@@ -222,6 +223,32 @@ dimensions*. In the DXF the circles are on **CUT** and the crosses on their own 
 they can be scribed / punched instead of cut. D and T only appear with reference dimensions or
 annotations on.
 
+## Screw flight (screw conveyor / Archimedes screw)
+
+Blank for one pitch of a screw flight: a ring with a gap.
+
+| | |
+|---|---|
+| **OD** | outer diameter of the flight |
+| **ID** | inner diameter of the flight (shaft) |
+| **P** | pitch |
+| **L** | screw length → **pieces = L / P rounded up** |
+| **Gap** | gap between the cut ends at the inner edge (default 6 mm) |
+
+Standard development (the same as the KOSOVNICA calculator, but with exact π – the sheet uses
+π = 3.14 in the angle, which makes it ~0.15° too large):
+
+    Li = √((π·ID)² + P²)   Lo = √((π·OD)² + P²)   h = (OD − ID)/2
+    Ri = h·Li / (Lo − Li)  Ro = Ri + h            calculated angle = Li / Ri
+
+Inner and outer edges get exactly the helix lengths. A flight cannot be developed exactly; between
+the edges the blank is 1–4 % longer than the helix and is stretched when it is formed.
+
+The calculated blank is less than 360°, so it is **extended until the two cut ends are Gap mm
+apart at the inner edge** (the closest point): blank angle = 360° − 2·asin(Gap / 2Ri). The task
+panel shows all results live (radii, calculated angle, extension, blank angle, outer gap, pieces);
+with annotations on, a reference line marks where the calculated part ends and the extension starts.
+
 ### SheetMetal (optional 3D check)
 
 `*_Cut` is a closed sketch usable as a SheetMetal base shape; `*_Folds` holds the fold lines
@@ -236,5 +263,5 @@ hvacdev/dxf/                  dependency-free DXF R12 writer
 hvacdev/freecad/              feature objects, task panel, commands, export
 resources/                    icons, task-panel diagrams
 tools/make_elbow_diagram.py   regenerates resources/diagrams/elbow.svg
-tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py`, `test_flange.py`, `test_flange_thread.py`, `test_flange_divide.py` (no FreeCAD needed)
+tests/                        `python tests/test_elbow.py`, `test_transition.py`, `test_branch_reducer.py`, `test_flange.py`, `test_flange_thread.py`, `test_flange_divide.py`, `test_screw.py` (no FreeCAD needed)
 ```

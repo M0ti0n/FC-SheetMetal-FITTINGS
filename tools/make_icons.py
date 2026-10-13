@@ -355,6 +355,63 @@ def thread_flange_icon(pal):
     return ic
 
 
+# -------------------------------------------------------------- screw flight
+def screw_icon(pal):
+    """Screw conveyor in a slightly oblique side view: shaft with a helical flight."""
+    ic = Icon()
+    outline = pal[3]
+    cy, r_in, r_out = 32.0, 5.5, 23.0
+    x0, turns, pitch = 13.0, 2.0, 20.0
+    k_obl = 0.42                              # oblique depth -> blade faces become visible
+
+    def proj(t, r):
+        """t = angle along the helix, r = radius; returns screen (x, y)."""
+        x = x0 + pitch * t / (2 * math.pi)
+        y = cy - r * math.sin(t)
+        z = r * math.cos(t)
+        return (x + k_obl * z, y - 0.18 * z)
+
+    t_end = 2 * math.pi * turns
+    # split into half turns: back (cos < 0) and front (cos > 0) halves
+    pieces = []
+    t = -math.pi / 2
+    while t < t_end:
+        a, b = max(t, 0.0), min(t + math.pi, t_end)
+        if b > a:
+            front = math.cos((a + b) / 2) > 0
+            pieces.append((a, b, front))
+        t += math.pi
+
+    def blade(a, b, front):
+        n = 28
+        ts = [a + (b - a) * i / n for i in range(n + 1)]
+        outer = [proj(u, r_out) for u in ts]
+        inner = [proj(u, r_in) for u in reversed(ts)]
+        mid = (a + b) / 2
+        lit = 0.5 + 0.5 * math.sin(mid)       # upper faces lit
+        col = shade(pal, (0.45 + 0.5 * lit) if front else (0.12 + 0.2 * lit))
+        ic.poly(outer + inner, col)
+        ic.line(outer, outline, 1.8)
+
+    for a, b, front in pieces:                 # back halves behind the shaft
+        if not front:
+            blade(a, b, False)
+    # shaft (cylinder seen from the side, shaded)
+    xa, xb = x0 - 9, x0 + pitch * turns + 9
+    strips = 12
+    for k in range(strips):
+        y0 = cy - r_in + 2 * r_in * k / strips
+        y1 = cy - r_in + 2 * r_in * (k + 1) / strips
+        u = (k + 0.5) / strips
+        ic.poly([(xa, y0), (xb, y0), (xb, y1), (xa, y1)],
+                shade(pal, 0.2 + 0.8 * max(0.0, math.cos((u - 0.3) * math.pi * 0.95))))
+    ic.line([(xa, cy - r_in), (xb, cy - r_in), (xb, cy + r_in), (xa, cy + r_in)], outline, 2.0, closed=True)
+    for a, b, front in pieces:                 # front halves over the shaft
+        if front:
+            blade(a, b, True)
+    return ic
+
+
 def write(name, ic, colour, svg_path=None):
     os.makedirs(os.path.join(ICONS, "png"), exist_ok=True)
     os.makedirs(os.path.join(ICONS, "variants"), exist_ok=True)
@@ -378,4 +435,6 @@ if __name__ == "__main__":
               os.path.join(ICONS, "Flange.svg") if default else None)
         write("ThreadFlange", thread_flange_icon(pal), colour,
               os.path.join(ICONS, "ThreadFlange.svg") if default else None)
+        write("ScrewFlight", screw_icon(pal), colour,
+              os.path.join(ICONS, "ScrewFlight.svg") if default else None)
     print("icons written to", ICONS)
