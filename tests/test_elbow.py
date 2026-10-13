@@ -162,6 +162,22 @@ def test_short_piece_merges_marks():
     assert fold_marks(0, 0, 3, p) == []
 
 
+def test_no_tiny_fold_marks():
+    from hvacdev.geometry.elbow import fold_marks
+    assert fold_marks(0, 0, 4.000001, ElbowParams()) == []          # would be a 0.000001 mm mark
+    for (_, a), (_, b) in fold_marks(0, 0, 4.6, ElbowParams()):
+        assert b - a >= 0.5
+
+
+def test_minimum_radius_throat_seam_is_a_valid_outline():
+    # R = D/2: the throat edge has zero length; the sketch builder drops it, the outline stays closed
+    p = ElbowParams(diameter=400, radius=200, seam="Throat")
+    middle, end = develop(p)
+    for sec in (middle, end):
+        segs = [s for s in sec.contour if math.dist(s.start, s.end) > 1e-6]
+        assert all(math.dist(a.end, b.start) < 1e-6 for a, b in zip(segs, segs[1:] + segs[:1]))
+
+
 if __name__ == "__main__":
     n = 0
     for name, fn in list(globals().items()):

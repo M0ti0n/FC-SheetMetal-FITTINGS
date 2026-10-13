@@ -135,13 +135,20 @@ class ElbowFeature:
 # ---------------------------------------------------------------------------
 # geometry -> FreeCAD objects
 # ---------------------------------------------------------------------------
+MIN_SEG = 1e-6        # shorter segments are dropped (OpenCascade refuses zero-length edges)
+
+
 def _line(a, b):
+    if (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 < MIN_SEG ** 2:
+        return None
     return Part.LineSegment(App.Vector(a[0], a[1], 0), App.Vector(b[0], b[1], 0))
 
 
 def _seg_geometry(sg):
     """arcs.Seg -> sketch geometry. Only lines and circular arcs, never splines."""
     V = App.Vector
+    if (sg.start[0] - sg.end[0]) ** 2 + (sg.start[1] - sg.end[1]) ** 2 < MIN_SEG ** 2:
+        return None
     if sg.is_arc:
         return Part.ArcOfCircle(V(sg.start[0], sg.start[1], 0), V(sg.mid[0], sg.mid[1], 0),
                                 V(sg.end[0], sg.end[1], 0))
@@ -154,6 +161,7 @@ def _cut_geometry(section):
 
 
 def _set_sketch(sk, geometry, placement):
+    geometry = [g for g in geometry if g is not None]      # degenerate segments were dropped
     sk.deleteAllGeometry()
     if geometry:
         sk.addGeometry(geometry, False)

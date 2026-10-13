@@ -3,6 +3,9 @@
 import math
 
 
+MIN_MARK = 0.5        # marks shorter than this are left out [mm]
+
+
 def fold_marks_on_line(p0, p1, length=15.0, gap=2.0, ends="both"):
     """Marks of `length`, starting `gap` inside the ends of the fold line
     p0 -> p1. ends = "both" (a mark at each end), "end" (only at p1).
@@ -10,7 +13,7 @@ def fold_marks_on_line(p0, p1, length=15.0, gap=2.0, ends="both"):
     still keeps the gaps; nothing if even that does not fit."""
     dx, dy = p1[0] - p0[0], p1[1] - p0[1]
     L = math.hypot(dx, dy)
-    if L <= 2 * gap:
+    if L <= 2 * gap + MIN_MARK:
         return []
     ux, uy = dx / L, dy / L
 

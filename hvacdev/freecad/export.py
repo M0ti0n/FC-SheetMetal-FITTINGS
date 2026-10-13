@@ -62,6 +62,8 @@ def wire_to_polyline(wire):
 def visible_sections(obj):
     out = []
     for s in SECTIONS:
+        if s == "Middle" and int(getattr(obj, "MiddleSections", 1)) == 0:
+            continue                      # N = 0: there is no middle section
         cut, folds, anno = ElbowFeature.children(obj, s)
         if _visible(cut):
             out.append((s, cut, folds if _visible(folds) else None,

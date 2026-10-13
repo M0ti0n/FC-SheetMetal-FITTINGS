@@ -194,6 +194,13 @@ def test_selection_any_combination_in_separate_rows():
     assert [pc.name for pc in only_long] == ["Long side E", "Long side F"]
 
 
+def test_no_tiny_marks_on_short_lines():
+    from hvacdev.geometry.marks import fold_marks_on_line
+    assert fold_marks_on_line((0, 0), (0, 4.000001), 15, 2, ends="end") == []
+    assert fold_marks_on_line((0, 0), (0, 4.000001), 15, 2) == []
+    assert fold_marks_on_line((0, 0), (0, 5), 15, 2, ends="end") == [((0.0, 2.0), (0.0, 3.0))]
+
+
 if __name__ == "__main__":
     n = 0
     for name, fn in list(globals().items()):

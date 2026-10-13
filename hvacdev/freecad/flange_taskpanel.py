@@ -60,6 +60,7 @@ class FlangeTaskPanel:
         self.size.addItems([_fmt(r[0]) for r in SIZES])
         self.size.lineEdit().setValidator(QtGui.QDoubleValidator(1.0, 100000.0, 2, self.size))
         self.size.setEditText(_fmt(o.Diameter.Value))
+        self._last_a = float(o.Diameter.Value)
         self.size.setToolTip("Pick a standard size - B, M, N, E and T are filled in from the table.\n"
                              "Type any other A: the values of the nearest smaller standard size are used.\n"
                              "All values can still be changed by hand.")
@@ -81,7 +82,7 @@ class FlangeTaskPanel:
         form.addRow("", self.info)
         lay.addLayout(form)
 
-        self.size.activated.connect(self._size_chosen)
+        self.size.activated.connect(lambda *_: self._size_chosen(force=True))   # picked from the list
         self.size.lineEdit().editingFinished.connect(self._size_chosen)
         for wdg in (self.b, self.m, self.e, self.t):
             wdg.valueChanged.connect(self._update_info)
@@ -151,8 +152,14 @@ class FlangeTaskPanel:
         except ValueError:
             return float(self.obj.Diameter.Value)
 
-    def _size_chosen(self, *_):
-        p, _std = fg.params_for(self._a())
+    def _size_chosen(self, *_, force=False):
+        # picking a size from the list always fills in the table values; leaving the text
+        # field only does so when A really changed, so values edited by hand are kept
+        a = self._a()
+        if not force and getattr(self, "_last_a", None) is not None and abs(a - self._last_a) < 1e-9:
+            return
+        self._last_a = a
+        p, _std = fg.params_for(a)
         for wdg, v in ((self.b, p.b), (self.m, p.m), (self.e, p.e), (self.t, p.t)):
             wdg.setProperty("rawValue", v)
         self.n.setValue(p.n)
@@ -263,10 +270,15 @@ class FlangeTaskPanel:
         return True
 
     def reject(self):
+        # remember the name first: aborting the transaction deletes a new object,
+        # and a deleted object must not be touched any more
+        name = self.obj.Name
         self.doc.abortTransaction()
-        if self.is_new and self.doc.getObject(self.obj.Name):
-            ff.delete_children(self.obj)
-            self.doc.removeObject(self.obj.Name)
+        if self.is_new:
+            obj = self.doc.getObject(name)      # still there e.g. when undo is switched off
+            if obj is not None:
+                ff.delete_children(obj)
+                self.doc.removeObject(name)
         self.doc.recompute()
         self._close()
         return True

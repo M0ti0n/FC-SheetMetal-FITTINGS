@@ -142,7 +142,7 @@ def fold_marks(x: float, y_low: float, y_high: float, p: ElbowParams):
     a0, a1 = y_low + g, y_low + g + L
     b0, b1 = y_high - g - L, y_high - g
     if a1 >= b0:                        # marks would touch or overlap
-        if y_high - y_low <= 2 * g:
+        if y_high - y_low <= 2 * g + 0.5:   # too short for a useful mark (< 0.5 mm)
             return []
         return [((x, y_low + g), (x, y_high - g))]
     return [((x, a0), (x, a1)), ((x, b0), (x, b1))]

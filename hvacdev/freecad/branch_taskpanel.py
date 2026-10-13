@@ -242,10 +242,15 @@ class BranchReducerTaskPanel:
         return True
 
     def reject(self):
+        # remember the name first: aborting the transaction deletes a new object,
+        # and a deleted object must not be touched any more
+        name = self.obj.Name
         self.doc.abortTransaction()
-        if self.is_new and self.doc.getObject(self.obj.Name):
-            bf.delete_children(self.obj)
-            self.doc.removeObject(self.obj.Name)
+        if self.is_new:
+            obj = self.doc.getObject(name)      # still there e.g. when undo is switched off
+            if obj is not None:
+                bf.delete_children(obj)
+                self.doc.removeObject(name)
         self.doc.recompute()
         self._close()
         return True

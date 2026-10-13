@@ -3,11 +3,10 @@
 Side view of a screw: shaft (ID), helical flight (OD), pitch P, screw length L.
 Same drawing style as the other diagrams.
 
-    python tools/make_screw_diagram.py [--preview file.png]
+    python tools/make_screw_diagram.py
 """
 import math
 import os
-import sys
 
 W, H = 350, 270
 BLACK = "#111"
