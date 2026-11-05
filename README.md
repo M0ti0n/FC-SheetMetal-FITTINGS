@@ -1,7 +1,11 @@
 # HVAC Fittings – FreeCAD workbench  
 
+https://ko-fi.com/m0ti0n
 
-WARNING 100! VIBE CODED AND NOT IN COMPLIANCE WITH FREECAD PROJECT RULES ABOUT AI USE !!!!
+https://paypal.me/FabG03D
+
+https://buymeacoffee.com/M0ti0n
+
 
 Flat patterns of sheet-metal duct fittings, HACO style:
 **choose fitting → enter dimensions → flat pattern in the model space → check → export DXF.**
