@@ -1,5 +1,10 @@
 # HVAC Fittings – FreeCAD workbench  
 
+I was using old software to easily produce different sheetmetal fittings  from 2 to 3 mm sheet metal with out the need to actually 3d model each one of them. 
+Old software i used no longer runs on  news PC so i made a  workbench for Freecad for easy creation of sheetmetal HAVAC fitings. 
+
+IF you want to support development:
+
 https://ko-fi.com/m0ti0n
 
 https://paypal.me/FabG03D
