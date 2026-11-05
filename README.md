@@ -12,6 +12,11 @@ https://paypal.me/FabG03D
 https://buymeacoffee.com/M0ti0n
 
 
+
+
+# HVAC Fittings
+
+
 Flat patterns of sheet-metal duct fittings, HACO style:
 **choose fitting → enter dimensions → flat pattern in the model space → check → export DXF.**
 
